@@ -1,4 +1,6 @@
 import json
+import sys
+
 import numpy as np
 import pandas as pd
 
@@ -28,9 +30,9 @@ def filter_words(guessed_word: list, solutions, all_words):
     updated_solutions = solutions.copy()
     updated_all_words = all_words.copy()
 
-    for i, item in enumerate(guessed_word):
-        letter = item[0]
-        score = item[1]
+    # sort descending by feedback value
+    sorted_guessed_word = sorted(guessed_word, key=lambda x: x[1], reverse=True)
+    for letter, score, i in sorted_guessed_word:
 
         if score == 0:
             letter_count = len([l for l in previous_letters if l == letter.decode('utf-8')])
@@ -51,7 +53,7 @@ def filter_words(guessed_word: list, solutions, all_words):
 
         previous_letters.append(letter.decode('utf-8'))
 
-    print(len(updated_solutions), len(updated_all_words))
+    print(len(updated_all_words), "possible word(s) remaining!")
 
     return updated_solutions, updated_all_words
 
@@ -92,6 +94,7 @@ def get_letter_position_frequency(letter_array: np.array, word_size: int) -> pd.
 
 def get_highest_score_word(letter_array: np.array, letter_position_frequency: pd.DataFrame, word_size: int) -> str:
     high_score = 0
+    high_score_word = ""
     for word in letter_array:
         word_score = sum(
             letter_position_frequency[i][l.decode('utf-8')]
@@ -102,8 +105,11 @@ def get_highest_score_word(letter_array: np.array, letter_position_frequency: pd
             high_score = word_score
             high_score_word = word
 
-    print(high_score)
-    print(high_score_word)
+    if high_score == 0:
+        raise KeyError("No words match.")
+
+    display = ''.join([l.decode("utf-8") for l in high_score_word]).upper()
+    print("my best guess is", display, "with a score of ", high_score)
 
     return high_score_word
 
@@ -114,3 +120,18 @@ with open("./database.json") as data_file:
 
 print("solutions:", solutions.shape)
 print("all_words:", all_words.shape)
+
+for i in range(6):
+    lpf = get_letter_position_frequency(solutions, WORD_SIZE)
+    highest_score_word = get_highest_score_word(all_words, lpf, WORD_SIZE)
+
+    feedback = input("feedback: ") # string of 5 numbers (0=gray, 1=yellow, 2=green)
+    if feedback == "22222":
+        sys.exit("I WIN!")
+
+    guess_result = np.array([int(o) for o in feedback], dtype=np.int32)
+    guessed_word = list(zip(highest_score_word, guess_result, range(WORD_SIZE)))
+
+    solutions, all_words = filter_words(guessed_word, solutions, all_words)
+
+print("I LOSE :(")
