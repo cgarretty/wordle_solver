@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 WORD_SIZE = 5
-USE_CACHE = False
+USE_CACHE = True
 PATH_TO_CACHE = './all_words_score_cards.pickle'
 
 def score_word(guess_word, all_words):
@@ -69,7 +69,7 @@ def get_bytecode_array(word_list: list) -> np.array:
 
     return word_array.view('S1').reshape((word_array.size, WORD_SIZE))
 
-def get_best_guess(all_words, cached_score_cards=None) -> str:
+def get_best_guess(all_words, cache=None) -> str:
     # store count of the largest set of remaining words, if that index
     # in all_words were guessed.
     max_remaining_words = np.zeros(shape=(len(all_words)), dtype=np.int64)
@@ -77,8 +77,8 @@ def get_best_guess(all_words, cached_score_cards=None) -> str:
     all_score_cards = {}
     for word_index, word in enumerate(all_words):
         display_name = ''.join([l.decode("utf-8") for l in word]).upper()
-        if cached_score_cards:
-            score_card = cached_score_cards[display_name]
+        if cache:
+            score_card = cache[display_name]
         else:
             score_card = score_word(word, all_words)
             all_score_cards.update({display_name: score_card})
@@ -108,28 +108,29 @@ get_from_cache = exists(PATH_TO_CACHE) and USE_CACHE
 
 if get_from_cache:
     with open(PATH_TO_CACHE, 'rb') as db:
-        score_cards = pickle.load(db, all_score_cards)
+        score_cards = pickle.load(db)
 else:
     score_cards=None
 
 possible_solutions = all_words.copy()
+# np.ones(shape=all_words.shape[0], dtype=bool)
 
 # start the rounds of guessing
-for i in range(7):
-    print("possible_solutions remaining:", possible_solutions.shape[0])
+for i in range(6):
+    print("possible_solutions remaining:", all_words.shape[0])
     # choose the best guess
-    if i == 0 and USE_CACHE: # pre-calc first word for speed
-        best_word= np.array([b's', b'e', b'r', b'a', b'i'])
+    if i == 0 and USE_CACHE: # pre-calculated first word for speed
+        best_word = np.array([b's', b'e', b'r', b'a', b'i'])
         max_remaining = 697
     else:
         best_word, max_remaining = get_best_guess(
             all_words,
-            cached_score_cards=score_cards,
+            cache=score_cards,
         )
 
     # Write result to screen
     display = ''.join([l.decode("utf-8") for l in best_word]).upper()
-    print("my best guess is", display, f"({max_remaining} at most)")
+    print("my best guess is", display, f"({max_remaining} solutions at most)")
 
     # string of 5 numbers (0=gray, 1=yellow, 2=green)
     feedback = input("feedback: ")
@@ -138,6 +139,6 @@ for i in range(7):
 
     # check the result
     result = get_result_structure(feedback)
-    possible_solutions = filter_words(best_word, result, possible_solutions, cache=score_cards)
+    all_words = filter_words(best_word, result, all_words, cache=score_cards)
 
 print("I LOSE :(")
