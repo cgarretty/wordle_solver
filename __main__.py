@@ -6,9 +6,18 @@ import pickle
 import numpy as np
 import pandas as pd
 
+# Game config
+HARD_MODE = False
 WORD_SIZE = 5
+ROUNDS = 6
+
+# Optimization config
 USE_CACHE = True
+USE_PRECALC_FIRST_GUESS = True
 PATH_TO_CACHE = './all_words_score_cards.pickle'
+
+def get_display_name(word):
+    return ''.join([l.decode("utf-8") for l in word]).upper()
 
 def score_word(guess_word, all_words):
     all_words_copy = all_words.copy()
@@ -48,15 +57,14 @@ def get_result_structure(feedback):
 
     return result_structure
 
-def filter_words(best_word, guess_result, all_words, cache=None):
-    score_card = cache if cache else score_word(best_word, all_words)
 
-    remaining_words = []
+def filter_words(best_guess, guess_result, possible_solutions, score_card):
+    possible_solutions_copy = possible_solutions.copy()
     for i, score in enumerate(score_card):
-        if np.array_equal(score, guess_result):
-            remaining_words.append(i)
+        if not np.array_equal(score, guess_result):
+            possible_solutions_copy[i] = False
 
-    return all_words[remaining_words].copy()
+    return possible_solutions_copy
 
 
 def get_bytecode_array(word_list: list) -> np.array:
@@ -69,30 +77,43 @@ def get_bytecode_array(word_list: list) -> np.array:
 
     return word_array.view('S1').reshape((word_array.size, WORD_SIZE))
 
-def get_best_guess(all_words, cache=None) -> str:
-    # store count of the largest set of remaining words, if that index
-    # in all_words were guessed.
-    max_remaining_words = np.zeros(shape=(len(all_words)), dtype=np.int64)
 
+def score_all_words(all_words) -> str:
     all_score_cards = {}
     for word_index, word in enumerate(all_words):
-        display_name = ''.join([l.decode("utf-8") for l in word]).upper()
+        display_name = get_display_name(word)
         if cache:
             score_card = cache[display_name]
         else:
             score_card = score_word(word, all_words)
             all_score_cards.update({display_name: score_card})
 
-        score_card
-        _, counts = np.unique(score_card, return_counts=True, axis=(0))
-        count_of_biggest_group = max(counts)
-        max_remaining_words[word_index] = count_of_biggest_group
-
     # refresh cache
     with open(PATH_TO_CACHE, 'wb') as db:
         pickle.dump(all_score_cards, db)
 
+    return all_score_cards
+
+
+def find_minimax(all_words, score_cards, possible_solutions):
+    # store count of the largest set of remaining words, if that index
+    # in all_words were guessed.
+    if sum(possible_solutions) == 1:
+        answer_index = np.argmax(possible_solutions)
+        return all_words[answer_index], 0
+
+    max_remaining_words = np.zeros(shape=(len(all_words)), dtype=np.int64)
+    for word_index, word in enumerate(all_words):
+        # get the score_card for each guessable word
+        display_name = get_display_name(word)
+        score_card = score_cards[display_name]
+        # find the largest set of a specfic result given a specific guess
+        _, counts = np.unique(score_card[possible_solutions], return_counts=True, axis=(0))
+        count_of_biggest_group = max(counts)
+        max_remaining_words[word_index] = count_of_biggest_group
+
     best_index = np.argmin(max_remaining_words)
+    print(best_index)
     best_word = all_words[best_index]
     remaining_after_guess = max_remaining_words[best_index]
 
@@ -105,40 +126,45 @@ with open("./database.json") as data_file:
 
 # Caching the score_cards for faster results
 get_from_cache = exists(PATH_TO_CACHE) and USE_CACHE
-
 if get_from_cache:
     with open(PATH_TO_CACHE, 'rb') as db:
         score_cards = pickle.load(db)
 else:
-    score_cards=None
+    score_cards = score_all_words(all_words)
 
-possible_solutions = all_words.copy()
-# np.ones(shape=all_words.shape[0], dtype=bool)
-
+possible_solutions = np.ones(shape=all_words.shape[0], dtype=bool)
 # start the rounds of guessing
-for i in range(6):
-    print("possible_solutions remaining:", all_words.shape[0])
+for round in range(ROUNDS):
+    print("possible_solutions remaining:", sum(possible_solutions))
     # choose the best guess
-    if i == 0 and USE_CACHE: # pre-calculated first word for speed
-        best_word = np.array([b's', b'e', b'r', b'a', b'i'])
+    # pre-calculated first word for speed
+    if round == 0 and USE_PRECALC_FIRST_GUESS:
+        best_guess = np.array([b's', b'e', b'r', b'a', b'i'])
         max_remaining = 697
     else:
-        best_word, max_remaining = get_best_guess(
+        best_guess, max_remaining = find_minimax(
             all_words,
-            cache=score_cards,
+            score_cards,
+            possible_solutions,
         )
 
-    # Write result to screen
-    display = ''.join([l.decode("utf-8") for l in best_word]).upper()
-    print("my best guess is", display, f"({max_remaining} solutions at most)")
+    # Write the best guess to screen
+    display_name = get_display_name(best_guess)
+    print(f"my best guess is {display_name} ({max_remaining} solutions at most)")
 
-    # string of 5 numbers (0=gray, 1=yellow, 2=green)
+    # get user input. String of 5 numbers (0=gray, 1=yellow, 2=green)
     feedback = input("feedback: ")
     if feedback == "22222":
         sys.exit("I WIN!")
 
-    # check the result
+    # filter the possible solutions based on result
     result = get_result_structure(feedback)
-    all_words = filter_words(best_word, result, all_words, cache=score_cards)
+    score_card = score_cards[display_name]
+    possible_solutions = filter_words(
+        best_guess,
+        result,
+        possible_solutions,
+        score_card,
+    )
 
 print("I LOSE :(")
