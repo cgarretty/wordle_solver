@@ -8,7 +8,7 @@ import pandas as pd
 
 WORD_SIZE = 5
 USE_CACHE = False
-PATH_TO_CACHE = './all_words_score_cards'
+PATH_TO_CACHE = './all_words_score_cards.pickle'
 
 def score_word(guess_word, all_words):
     all_words_copy = all_words.copy()
