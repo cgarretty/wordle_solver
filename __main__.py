@@ -1,64 +1,65 @@
 import json
 import sys
+from os.path import exists
+import pickle
 
 import numpy as np
 import pandas as pd
 
 WORD_SIZE = 5
+USE_CACHE = False
+PATH_TO_CACHE = './all_words_score_cards'
 
-def is_somewhere(letter_array: np.array, letter) -> np.array:
-    letter_mask = np.isin(letter_array, letter)
+def score_word(guess_word, all_words):
+    all_words_copy = all_words.copy()
 
-    return letter_array[np.any(letter_mask, axis=1)]
+    # The additional dimension is for the two possible matches
+    # (position and "in the word").
+    score_card = np.zeros(shape=(len(all_words), WORD_SIZE, 2), dtype=bool)
 
-def is_nowhere(letter_array: np.array, letter, letter_count:int) -> np.array:
-    letter_mask = np.isin(letter_array, letter)
-    letter_count_mask = np.count_nonzero(letter_mask, axis=1) <= letter_count
+    # check for exact positional matches (scored as 2's)
+    for letter_index, letter in enumerate(guess_word):
+        letter_exact_match = all_words[:, letter_index] == letter
+        score_card[letter_exact_match, letter_index, :] = True
 
-    return letter_array[letter_count_mask]
+    # consider these letters "settled," so they're not double
+    # counted when discovering yellow letters.
+    all_words_copy[np.all(score_card, axis=2)] = None
 
-def is_here(letter_array: np.array, letter: str, position: int) -> np.array:
+    # check for matches in word (scored as 1's)
+    for letter_index, letter in enumerate(guess_word):
+        letter_position = np.isin(all_words_copy, letter)
+        score_card[np.any(letter_position, axis=1), letter_index, 1] = True
+        # settle the letter in the first found position
+        all_words_copy[letter_position.cumsum(axis=1).cumsum(axis=1) == 1] = None
 
-    return letter_array[letter_array[:, position] == letter]
-
-def is_not_here(letter_array: np.array, letter: str, position: int) -> np.array:
-
-    return letter_array[letter_array[:, position] != letter]
-
-def filter_words(guessed_word: list, solutions, all_words):
-    previous_letters = list()
-    updated_solutions = solutions.copy()
-    updated_all_words = all_words.copy()
-
-    # sort descending by feedback value
-    sorted_guessed_word = sorted(guessed_word, key=lambda x: x[1], reverse=True)
-    for letter, score, i in sorted_guessed_word:
-
-        if score == 0:
-            letter_count = len([l for l in previous_letters if l == letter.decode('utf-8')])
-
-            updated_solutions = is_nowhere(updated_solutions, letter, letter_count)
-            updated_all_words = is_nowhere(updated_all_words, letter, letter_count)
-
-        if score == 2:
-            updated_solutions = is_here(updated_solutions, letter, i)
-            updated_all_words = is_here(updated_solutions, letter, i)
-
-        if score == 1:
-            updated_solutions = is_not_here(updated_solutions, letter, i)
-            updated_all_words = is_not_here(updated_all_words, letter, i)
-
-            updated_solutions = is_somewhere(updated_solutions, letter)
-            updated_all_words = is_somewhere(updated_all_words, letter)
-
-        previous_letters.append(letter.decode('utf-8'))
-
-    print(len(updated_all_words), "possible word(s) remaining!")
-
-    return updated_solutions, updated_all_words
+    return score_card
 
 
-def get_bytecode_array(word_list: list, word_size: int) -> np.array:
+def get_result_structure(feedback):
+    guess_result = np.array([int(o) for o in feedback], dtype=np.int32)
+    result_structure = np.zeros(shape=(WORD_SIZE, 2), dtype=bool)
+
+    for i, letter in enumerate(guess_result):
+        if letter == 2:
+            result_structure[i, :] = True
+        if letter == 1:
+            result_structure[i, 1] = True
+
+    return result_structure
+
+def filter_words(best_word, guess_result, all_words, cache=None):
+    score_card = cache if cache else score_word(best_word, all_words)
+
+    remaining_words = []
+    for i, score in enumerate(score_card):
+        if np.array_equal(score, guess_result):
+            remaining_words.append(i)
+
+    return all_words[remaining_words].copy()
+
+
+def get_bytecode_array(word_list: list) -> np.array:
     """
         Returns n sized numpy array with shape (n, s) where:
             n = len(word_list)
@@ -66,72 +67,77 @@ def get_bytecode_array(word_list: list, word_size: int) -> np.array:
     """
     word_array = np.array(word_list, dtype=bytes)
 
-    return word_array.view('S1').reshape((word_array.size, 5))
+    return word_array.view('S1').reshape((word_array.size, WORD_SIZE))
 
+def get_best_guess(all_words, cached_score_cards=None) -> str:
+    # store count of the largest set of remaining words, if that index
+    # in all_words were guessed.
+    max_remaining_words = np.zeros(shape=(len(all_words)), dtype=np.int64)
 
-def get_letter_position_frequency(letter_array: np.array, word_size: int) -> pd.DataFrame:
-    """
-       Returns DataFrame of the letter, position frequencys for
-       the given np.array (letter_array).
-    """
-    letter_position_frequency = {l: [] for l in 'abcdefghijklmnopqrstuvwxyz'}
-    for i in range(word_size):
-        letters, counts = np.unique(letter_array[:, i], return_counts=True)
-        position_frequency = {
-            x.decode("utf-8"): y for x, y in list(zip(letters, counts))
-        }
+    all_score_cards = {}
+    for word_index, word in enumerate(all_words):
+        display_name = ''.join([l.decode("utf-8") for l in word]).upper()
+        if cached_score_cards:
+            score_card = cached_score_cards[display_name]
+        else:
+            score_card = score_word(word, all_words)
+            all_score_cards.update({display_name: score_card})
 
-        for letter in letter_position_frequency.keys():
-            letter_frequency = position_frequency.get(letter, 0)
-            letter_position_frequency[letter].append(letter_frequency)
+        score_card
+        _, counts = np.unique(score_card, return_counts=True, axis=(0))
+        count_of_biggest_group = max(counts)
+        max_remaining_words[word_index] = count_of_biggest_group
 
-    df = pd.DataFrame(letter_position_frequency).transpose()
+    # refresh cache
+    with open(PATH_TO_CACHE, 'wb') as db:
+        pickle.dump(all_score_cards, db)
 
-    for i in range(word_size):
-        df[i] = (df[i] / df[i].sum()) * 100
+    best_index = np.argmin(max_remaining_words)
+    best_word = all_words[best_index]
+    remaining_after_guess = max_remaining_words[best_index]
 
-    return df
+    return best_word, remaining_after_guess
 
-def get_highest_score_word(letter_array: np.array, letter_position_frequency: pd.DataFrame, word_size: int) -> str:
-    high_score = 0
-    high_score_word = ""
-    for word in letter_array:
-        word_score = sum(
-            letter_position_frequency[i][l.decode('utf-8')]
-            for l in word
-            for i in range(word_size)
-        )
-        if high_score < word_score:
-            high_score = word_score
-            high_score_word = word
-
-    if high_score == 0:
-        raise KeyError("No words match.")
-
-    display = ''.join([l.decode("utf-8") for l in high_score_word]).upper()
-    print("my best guess is", display, "with a score of ", high_score)
-
-    return high_score_word
 
 with open("./database.json") as data_file:
     words = json.load(data_file)
-    solutions = get_bytecode_array(words["solutions"], WORD_SIZE)
-    all_words = get_bytecode_array(words["herrings"] + words["solutions"], WORD_SIZE)
+    all_words = get_bytecode_array(words["herrings"] + words["solutions"])
 
-print("solutions:", solutions.shape)
-print("all_words:", all_words.shape)
+# Caching the score_cards for faster results
+get_from_cache = exists(PATH_TO_CACHE) and USE_CACHE
 
-for i in range(6):
-    lpf = get_letter_position_frequency(solutions, WORD_SIZE)
-    highest_score_word = get_highest_score_word(all_words, lpf, WORD_SIZE)
+if get_from_cache:
+    with open(PATH_TO_CACHE, 'rb') as db:
+        score_cards = pickle.load(db, all_score_cards)
+else:
+    score_cards=None
 
-    feedback = input("feedback: ") # string of 5 numbers (0=gray, 1=yellow, 2=green)
+possible_solutions = all_words.copy()
+
+# start the rounds of guessing
+for i in range(7):
+    print("possible_solutions remaining:", possible_solutions.shape[0])
+    # choose the best guess
+    if i == 0 and USE_CACHE: # pre-calc first word for speed
+        best_word= np.array([b's', b'e', b'r', b'a', b'i'])
+        max_remaining = 697
+    else:
+        best_word, max_remaining = get_best_guess(
+            all_words,
+            cached_score_cards=score_cards,
+        )
+
+    # Write result to screen
+    display = ''.join([l.decode("utf-8") for l in best_word]).upper()
+    print("my best guess is", display, f"({max_remaining} at most)")
+
+    # string of 5 numbers (0=gray, 1=yellow, 2=green)
+    feedback = input("feedback: ")
     if feedback == "22222":
         sys.exit("I WIN!")
 
-    guess_result = np.array([int(o) for o in feedback], dtype=np.int32)
-    guessed_word = list(zip(highest_score_word, guess_result, range(WORD_SIZE)))
-
-    solutions, all_words = filter_words(guessed_word, solutions, all_words)
+    # check the result
+    result = get_result_structure(feedback)
+    possible_solutions = filter_words(best_word, result, possible_solutions, cache=score_cards)
 
 print("I LOSE :(")
