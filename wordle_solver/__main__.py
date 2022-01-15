@@ -10,11 +10,12 @@ import pandas as pd
 HARD_MODE = False # TODO: be able to toggle to hard mode.
 WORD_SIZE = 5
 ROUNDS = 6
+PATH_TO_WORDS = "./database.json"
 
 # Optimization config
 USE_CACHE = True
 USE_PRECALC_FIRST_GUESS = True
-PATH_TO_CACHE = './all_words_score_cards.pickle'
+PATH_TO_CACHE = "./all_words_score_cards.pickle"
 
 
 def get_result_structure(feedback: str) -> np.array:
@@ -171,7 +172,7 @@ def find_minimax(all_words, score_cards, possible_solutions) -> tuple:
     return best_word, remaining_after_guess
 
 
-with open("./database.json") as data_file:
+with open(PATH_TO_WORDS) as data_file:
     words = json.load(data_file)
     all_words = get_bytecode_array(words["herrings"] + words["solutions"])
 
