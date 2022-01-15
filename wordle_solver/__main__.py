@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 # Game config
-HARD_MODE = False # TODO: be able to toggle to hard mode.
+HARD_MODE = True
 WORD_SIZE = 5
 ROUNDS = 6
 PATH_TO_WORDS = "./database.json"
@@ -144,7 +144,7 @@ def find_minimax(all_words, score_cards, possible_solutions) -> tuple:
     """
     # send the answer when possible_solutions is down to just one
     # True value. since np.argmin will behave unexpectedly.
-    if sum(possible_solutions) == 1:
+    if sum(possible_solutions) == 1 and not HARD_MODE:
         answer_index = np.argmax(possible_solutions)
         return all_words[answer_index], 0
 
@@ -195,7 +195,7 @@ for round in range(ROUNDS):
         max_remaining = 697
     else:
         best_guess, max_remaining = find_minimax(
-            all_words,
+            all_words[possible_solutions] if HARD_MODE else all_words,
             score_cards,
             possible_solutions,
         )
