@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 # Game config
-HARD_MODE = False
+HARD_MODE = False # TODO: be able to toggle to hard mode.
 WORD_SIZE = 5
 ROUNDS = 6
 
@@ -16,10 +16,61 @@ USE_CACHE = True
 USE_PRECALC_FIRST_GUESS = True
 PATH_TO_CACHE = './all_words_score_cards.pickle'
 
-def get_display_name(word):
+
+def get_result_structure(feedback: str) -> np.array:
+    """Return structured array of feedback from a guessed word.
+       feedback is a character string with characters 0-2.
+       0=Gray, 1=Yellow, 2=Green for each tile in a Wordle
+       guess.
+
+       The result_structure returned is an 2d array shaped
+       (WORD_SIZE, 2), which matches the shape of the
+       score_card for each word.
+    """
+    guess_result = np.array([int(o) for o in feedback], dtype=np.int32)
+    result_structure = np.zeros(shape=(WORD_SIZE, 2), dtype=bool)
+
+    for i, letter in enumerate(guess_result):
+        if letter == 2:
+            result_structure[i, :] = True
+        if letter == 1:
+            result_structure[i, 1] = True
+
+    return result_structure
+
+
+def get_bytecode_array(word_list: list) -> np.array:
+    """Returns n sized numpy array with shape (n, s) where:
+            n = len(word_list)
+            s = word_size
+    """
+    word_array = np.array(word_list, dtype=bytes)
+
+    return word_array.view('S1').reshape((word_array.size, WORD_SIZE))
+
+
+def get_display_name(word: np.array) -> str:
+    """Returns the uppercase string of byte array.
+       e.g. np.array(b's', b't', b'o', b'a', b'e') -> 'STOAE'
+    """
     return ''.join([l.decode("utf-8") for l in word]).upper()
 
-def score_word(guess_word, all_words):
+
+def score_word(guess_word: np.array, all_words: np.array) -> np.array:
+    """Returns the "score_card" for a given guess_word.
+       The score_card represents the what the Wordle board
+       would return if you play the guess word. So the
+       axes represent:
+
+       0 = The word (same index as supplied word_list).
+       1 = The letter.
+       2 = The score. The first element is if the letter
+           is in the correct position, and the second
+           element is if the letter exists in the word.
+           i.e. [True, True] = Green, [False, True] = Yellow,
+           [False, False] = Gray
+    """
+    # make a copy so we don't mutate the original
     all_words_copy = all_words.copy()
 
     # The additional dimension is for the two possible matches
@@ -45,20 +96,12 @@ def score_word(guess_word, all_words):
     return score_card
 
 
-def get_result_structure(feedback):
-    guess_result = np.array([int(o) for o in feedback], dtype=np.int32)
-    result_structure = np.zeros(shape=(WORD_SIZE, 2), dtype=bool)
-
-    for i, letter in enumerate(guess_result):
-        if letter == 2:
-            result_structure[i, :] = True
-        if letter == 1:
-            result_structure[i, 1] = True
-
-    return result_structure
-
-
 def filter_words(best_guess, guess_result, possible_solutions, score_card):
+    """Returns 1d Boolean array (length=possible_solutions)
+       where:
+         False=word is not a solution based on the board
+         True=word is still a possible solution
+    """
     possible_solutions_copy = possible_solutions.copy()
     for i, score in enumerate(score_card):
         if not np.array_equal(score, guess_result):
@@ -67,18 +110,10 @@ def filter_words(best_guess, guess_result, possible_solutions, score_card):
     return possible_solutions_copy
 
 
-def get_bytecode_array(word_list: list) -> np.array:
+def score_all_words(all_words: np.array) -> str:
+    """Return the score_cards for all words in all_words.
+       see `score_words` for more details.
     """
-        Returns n sized numpy array with shape (n, s) where:
-            n = len(word_list)
-            s = word_size
-    """
-    word_array = np.array(word_list, dtype=bytes)
-
-    return word_array.view('S1').reshape((word_array.size, WORD_SIZE))
-
-
-def score_all_words(all_words) -> str:
     all_score_cards = {}
     for word_index, word in enumerate(all_words):
         display_name = get_display_name(word)
@@ -95,20 +130,36 @@ def score_all_words(all_words) -> str:
     return all_score_cards
 
 
-def find_minimax(all_words, score_cards, possible_solutions):
-    # store count of the largest set of remaining words, if that index
-    # in all_words were guessed.
+def find_minimax(all_words, score_cards, possible_solutions) -> tuple:
+    """Returns the best word to guess given the
+       word list (all_words), how each word scores against
+       all words in the word list, and what words remain
+       a possible solution to the puzzle.
+
+       "Best" is defined as the word that will obtain the
+       information to elimate the most words in the worst
+       case scenario (gets scored in a way that narrows down
+       the solution as least as possible).
+    """
+    # send the answer when possible_solutions is down to just one
+    # True value. since np.argmin will behave unexpectedly.
     if sum(possible_solutions) == 1:
         answer_index = np.argmax(possible_solutions)
         return all_words[answer_index], 0
 
+    # store count of the largest set of remaining words, if that index
+    # in all_words were guessed.
     max_remaining_words = np.zeros(shape=(len(all_words)), dtype=np.int64)
     for word_index, word in enumerate(all_words):
         # get the score_card for each guessable word
         display_name = get_display_name(word)
         score_card = score_cards[display_name]
         # find the largest set of a specfic result given a specific guess
-        _, counts = np.unique(score_card[possible_solutions], return_counts=True, axis=(0))
+        _, counts = np.unique(
+            score_card[possible_solutions],
+            return_counts=True,
+            axis=(0)
+        )
         count_of_biggest_group = max(counts)
         max_remaining_words[word_index] = count_of_biggest_group
 
