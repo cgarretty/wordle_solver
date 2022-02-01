@@ -165,7 +165,6 @@ def find_minimax(all_words, score_cards, possible_solutions) -> tuple:
         max_remaining_words[word_index] = count_of_biggest_group
 
     best_index = np.argmin(max_remaining_words)
-    print(best_index)
     best_word = all_words[best_index]
     remaining_after_guess = max_remaining_words[best_index]
 
