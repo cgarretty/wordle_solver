@@ -124,7 +124,7 @@ def find_minimax(all_words, score_cards, possible_solutions) -> tuple:
        "Best" is defined as the word that will obtain the
        information to elimate the most words in the worst
        case scenario (gets scored in a way that narrows down
-       the solution as least as possible).
+       the solution as small as possible).
     """
     # send the answer when possible_solutions is down to just one
     # True value. since np.argmin will behave unexpectedly.
