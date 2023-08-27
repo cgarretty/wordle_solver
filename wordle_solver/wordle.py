@@ -1,7 +1,9 @@
+import pickle
+
 import numpy as np
 import pandas as pd
 
-from constants import WORD_SIZE
+from constants import WORD_SIZE, PATH_TO_CACHE, HARD_MODE
 
 def get_result_structure(feedback: str) -> np.array:
     """Return structured array of feedback from a guessed word.
@@ -103,11 +105,8 @@ def score_all_words(all_words: np.array) -> str:
     all_score_cards = {}
     for word_index, word in enumerate(all_words):
         display_name = get_display_name(word)
-        if cache:
-            score_card = cache[display_name]
-        else:
-            score_card = score_word(word, all_words)
-            all_score_cards.update({display_name: score_card})
+        score_card = score_word(word, all_words)
+        all_score_cards.update({display_name: score_card})
 
     # refresh cache
     with open(PATH_TO_CACHE, 'wb') as db:
