@@ -21,6 +21,11 @@ if get_from_cache:
 else:
     score_cards = wordle.score_all_words(all_words)
 
+# refresh cache
+with open(constants.PATH_TO_CACHE, 'wb') as db:
+    pickle.dump(score_cards, db)
+
+
 possible_solutions = np.ones(shape=all_words.shape[0], dtype=bool)
 # start the rounds of guessing
 for round in range(constants.ROUNDS):

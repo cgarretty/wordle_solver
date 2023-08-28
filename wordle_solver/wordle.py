@@ -1,9 +1,6 @@
-import pickle
-
 import numpy as np
-import pandas as pd
 
-from constants import WORD_SIZE, PATH_TO_CACHE, HARD_MODE
+from constants import WORD_SIZE, HARD_MODE
 
 def get_result_structure(feedback: str) -> np.array:
     """Return structured array of feedback from a guessed word.
@@ -107,12 +104,6 @@ def score_all_words(all_words: np.array) -> str:
         display_name = get_display_name(word)
         score_card = score_word(word, all_words)
         all_score_cards.update({display_name: score_card})
-
-    # refresh cache
-    with open(PATH_TO_CACHE, 'wb') as db:
-        pickle.dump(all_score_cards, db)
-
-    return all_score_cards
 
 
 def find_minimax(all_words, score_cards, possible_solutions) -> tuple:
