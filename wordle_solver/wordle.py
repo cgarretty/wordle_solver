@@ -20,7 +20,9 @@ def get_result_structure(feedback: str) -> np.array:
             result_structure[i, :] = True
         if letter == 1:
             result_structure[i, 1] = True
-
+    
+    print(result_structure)
+    
     return result_structure
 
 
@@ -43,7 +45,7 @@ def get_display_name(word: np.array) -> str:
 
 def score_word(guess_word: np.array, all_words: np.array) -> np.array:
     """Returns the "score_card" for a given guess_word.
-       The score_card represents the what the Wordle board
+       The score_card represents what the Wordle board
        would return if you play the guess word. So the
        axes represent:
 

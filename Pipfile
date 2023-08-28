@@ -5,7 +5,8 @@ name = "pypi"
 
 [packages]
 numpy = "*"
-pandas = "*"
+pytest = "*"
+attrs = "*"
 
 [requires]
 python_version = "3.9.6"
