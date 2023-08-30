@@ -37,3 +37,14 @@ def test_with_repeated_letters_in_answer():
     ]
 
     assert test_results == game.score(guess)
+
+
+def test_out_of_guesses():
+    game = wordle.Board(answer="steep", max_guesses=5)
+    guesses = ["elect", "treat", "treat", "treat", "treat"]
+
+    for guess in guesses:
+        game.score(guess)
+
+    with pytest.raises(wordle.OutOfGuesses):
+        game.score("treat")
