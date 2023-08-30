@@ -48,3 +48,14 @@ def test_out_of_guesses():
 
     with pytest.raises(wordle.OutOfGuesses):
         game.score("treat")
+
+
+def test_you_win():
+    game = wordle.Board(answer="steep", max_guesses=6)
+    guesses = ["elect", "treat", "treat", "treat", "treat"]
+
+    for guess in guesses:
+        game.score(guess)
+
+    with pytest.raises(wordle.YouWin):
+        game.score("steep")
