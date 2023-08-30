@@ -42,8 +42,15 @@ class Board:
                 found_letter = answer_letters.index(guess_letter)
                 answer_letters[found_letter] = None  # letter settled
 
+        if score == [GREEN] * self.word_size:
+            raise YouWin
+
         return score
 
 
 class OutOfGuesses(Exception):
+    pass
+
+
+class YouWin(Exception):
     pass
