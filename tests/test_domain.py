@@ -33,5 +33,7 @@ def test_with_repeated_letters_in_answer():
         wordle.GRAY,
         wordle.GREEN,
         wordle.GRAY,
-        wordle.GRAY,
+        wordle.YELLOW,
     ]
+
+    assert test_results == game.score(guess)
