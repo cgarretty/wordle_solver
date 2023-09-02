@@ -1,4 +1,4 @@
-from attrs import asdict, define, make_class, Factory, field, frozen, cmp_using
+from attrs import define, Factory, field, frozen, cmp_using
 
 import numpy as np
 
@@ -19,12 +19,10 @@ class Board:
     answer: str = field(eq=cmp_using(eq=np.array_equal))
     word_size: int = 5
     guesses: list[str] = Factory(list)
+    scores: list[TileScore] = Factory(list)
     max_guesses: int = 6
 
     def score(self, guess):
-        if len(self.guesses) >= self.max_guesses:
-            raise OutOfGuesses
-
         self.guesses.append(guess)
         score = [GRAY] * self.word_size  # list of 5 gray tiles
         answer_letters = [*self.answer]
@@ -42,8 +40,13 @@ class Board:
                 found_letter = answer_letters.index(guess_letter)
                 answer_letters[found_letter] = None  # letter settled
 
+        self.scores.append(score)
+
         if score == [GREEN] * self.word_size:
             raise YouWin
+
+        if len(self.guesses) >= self.max_guesses:
+            raise OutOfGuesses
 
         return score
 

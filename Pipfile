@@ -7,6 +7,7 @@ name = "pypi"
 numpy = "*"
 pytest = "*"
 attrs = "*"
+colorama = "*"
 
 [requires]
 python_version = "3.9.6"
