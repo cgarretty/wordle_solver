@@ -40,7 +40,7 @@ def test_with_repeated_letters_in_answer():
 
 
 def test_out_of_guesses():
-    game = wordle.Board(answer="steep", max_guesses=5)
+    game = wordle.Board(answer="steep", max_guesses=6)
     guesses = ["elect", "treat", "treat", "treat", "treat"]
 
     for guess in guesses:

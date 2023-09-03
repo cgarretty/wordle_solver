@@ -2,6 +2,8 @@ from attrs import define, Factory, field, frozen, cmp_using
 
 import numpy as np
 
+WORD_SIZE = 5
+
 
 @frozen
 class TileScore:
@@ -17,14 +19,13 @@ YELLOW = TileScore(False, True)
 @define
 class Board:
     answer: str = field(eq=cmp_using(eq=np.array_equal))
-    word_size: int = 5
     guesses: list[str] = Factory(list)
     scores: list[TileScore] = Factory(list)
     max_guesses: int = 6
 
     def score(self, guess):
         self.guesses.append(guess)
-        score = [GRAY] * self.word_size  # list of 5 gray tiles
+        score = [GRAY] * WORD_SIZE
         answer_letters = [*self.answer]
         guess_letters = [*guess]
 
@@ -42,7 +43,7 @@ class Board:
 
         self.scores.append(score)
 
-        if score == [GREEN] * self.word_size:
+        if score == [GREEN] * WORD_SIZE:
             raise YouWin
 
         if len(self.guesses) >= self.max_guesses:
