@@ -1,6 +1,7 @@
 from attrs import define, Factory, field, frozen, cmp_using
-
 import numpy as np
+
+from rust import score_guess
 
 WORD_SIZE = 5
 
@@ -12,7 +13,7 @@ class TileScore:
 
 
 GRAY = TileScore(False, False)
-GREEN = TileScore(True, True)
+GREEN = TileScore(True, False)
 YELLOW = TileScore(False, True)
 
 
@@ -25,21 +26,9 @@ class Board:
 
     def score(self, guess):
         self.guesses.append(guess)
-        score = [GRAY] * WORD_SIZE
-        answer_letters = [*self.answer]
-        guess_letters = [*guess]
 
-        for letter_index, guess_letter in enumerate(guess_letters):
-            # check for matches in word (scored as 1's)
-            if guess_letter == answer_letters[letter_index]:
-                score[letter_index] = GREEN
-                answer_letters[letter_index] = None  # letter settled
-
-        for letter_index, guess_letter in enumerate(guess_letters):
-            if guess_letter in answer_letters and score[letter_index] != GREEN:
-                score[letter_index] = YELLOW
-                found_letter = answer_letters.index(guess_letter)
-                answer_letters[found_letter] = None  # letter settled
+        in_position, in_word = score_guess(self.answer, guess)
+        score = [TileScore(x, y) for x, y in zip(in_position, in_word)]
 
         self.scores.append(score)
 
