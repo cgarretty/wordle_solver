@@ -16,13 +16,13 @@ with open(constants.PATH_TO_WORDS) as data_file:
 # Caching the score_cards for faster results
 get_from_cache = exists(constants.PATH_TO_CACHE) and constants.USE_CACHE
 if get_from_cache:
-    with open(constants.PATH_TO_CACHE, 'rb') as db:
+    with open(constants.PATH_TO_CACHE, "rb") as db:
         score_cards = pickle.load(db)
 else:
     score_cards = wordle.score_all_words(all_words)
 
 # refresh cache
-with open(constants.PATH_TO_CACHE, 'wb') as db:
+with open(constants.PATH_TO_CACHE, "wb") as db:
     pickle.dump(score_cards, db)
 
 
@@ -33,7 +33,7 @@ for round in range(constants.ROUNDS):
     # choose the best guess
     # pre-calculated first word for speed
     if round == 0 and constants.USE_PRECALC_FIRST_GUESS:
-        best_guess = np.array([b's', b'e', b'r', b'a', b'i'])
+        best_guess = np.array([b"s", b"e", b"r", b"a", b"i"])
         max_remaining = 697
     else:
         best_guess, max_remaining = wordle.find_minimax(
