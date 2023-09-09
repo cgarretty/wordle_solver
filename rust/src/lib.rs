@@ -1,33 +1,42 @@
 use pyo3::prelude::*;
 use rayon::prelude::*;
 
-#[pyfunction]
-fn score_guess(answer: &str, guess: &str) -> ([bool; 5], [bool; 5]) {
-    let mut in_word: [bool; 5] = [false; 5];
-    let mut in_position: [bool; 5] = [false; 5];
-    let mut answer_chars: Vec<char> = answer.chars().collect();
-    let guess_chars: Vec<char> = guess.chars().collect();
+const GREEN: (bool, bool) = (true, true);
+const YELLOW: (bool, bool) = (false, true);
+const GRAY: (bool, bool) = (false, false);
 
+
+#[pyfunction]
+fn score_guess(answer: &str, guess: &str) -> [(bool, bool); 5] {
+    let mut score = [GRAY; 5];
+    let answer_chars = answer.as_bytes();
+    let guess_chars = guess.as_bytes();
+    let mut settled_letters = [false; 5];
 
     for i in 0..5 {
         if answer_chars[i] == guess_chars[i] {
-            in_word[i] = true;
-            answer_chars[i] = ' ';
+            score[i] = GREEN;
+            settled_letters[i] = true;
         } 
     }
 
     for i in 0..5 {
-        if answer_chars.contains(&guess_chars[i]) && !in_word[i] {
-            in_position[i] = true;
+        if !settled_letters[i] { 
+            if let Some(found_index) = answer_chars.iter().enumerate()
+                .find(|(j, &c)| !settled_letters[*j] && c == guess_chars[i]) {
+                    let (found_index, _) = found_index;
+                    score[i] = YELLOW;
+                    settled_letters[found_index] = true;
+            } 
         }
     }
 
-    return (in_word, in_position);
+    return score
 }
 
 #[pyfunction]
-fn score_all_words(answers: Vec<String>, guesses: Vec<String>) -> Vec<([bool; 5], [bool; 5])> {
-    let mut scores: Vec<([bool; 5], [bool; 5])> = vec![];
+fn score_all_words(answers: Vec<String>, guesses: Vec<String>) -> Vec<[(bool, bool); 5]> {
+    let mut scores: Vec<[(bool, bool); 5]> = vec![];
     scores.reserve_exact(answers.len() * guesses.len());
     scores = guesses
         .par_iter() // Use parallel iterator
@@ -35,9 +44,8 @@ fn score_all_words(answers: Vec<String>, guesses: Vec<String>) -> Vec<([bool; 5]
             answers
                 .iter()
                 .map(|answer| score_guess(answer, guess))
-                .collect::<Vec<_>>()
-        })
-        .collect();
+                .collect::<Vec<[(bool, bool); 5]>>()
+        }).collect::<Vec<[(bool, bool); 5]>>();
 
     scores
 }

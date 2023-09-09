@@ -13,7 +13,7 @@ class TileScore:
 
 
 GRAY = TileScore(False, False)
-GREEN = TileScore(True, False)
+GREEN = TileScore(True, True)
 YELLOW = TileScore(False, True)
 
 
@@ -27,8 +27,9 @@ class Board:
     def score(self, guess):
         self.guesses.append(guess)
 
-        in_position, in_word = score_guess(self.answer, guess)
-        score = [TileScore(x, y) for x, y in zip(in_position, in_word)]
+        score = [
+            TileScore(tile[0], tile[1]) for tile in score_guess(self.answer, guess)
+        ]
 
         self.scores.append(score)
 
