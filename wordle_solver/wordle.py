@@ -1,7 +1,6 @@
 import numpy as np
 
 from wordle_solver.constants import WORD_SIZE, HARD_MODE
-from rust import score_on_all_answers
 
 
 def get_result_structure(feedback: str) -> np.array:
