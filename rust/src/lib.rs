@@ -2,6 +2,7 @@ use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict};
 use pyo3::ToPyObject;
 
+
 const GREEN: u8 = 2;
 const YELLOW: u8 = 1;
 const GRAY: u8 = 0;
@@ -50,11 +51,29 @@ fn score_all_words(py: Python, answers: Vec<String>, guesses: Vec<String>) -> Py
     Ok(locals.into())
 }
 
+#[pyfunction]
+fn filter_words(guess_result: Vec<u8>, possible_solutions: Vec<bool>, score_card: Vec<Vec<u8>>) -> Vec<bool> {
+    let mut possible_solutions_copy = possible_solutions.to_vec();
+    
+    for (i, score) in score_card.iter().enumerate() {
+        if do_vecs_match(score, &guess_result) {
+            possible_solutions_copy[i] = false;
+        }
+    }
+    possible_solutions_copy
+}
+
+fn do_vecs_match<T: PartialEq>(a: &Vec<T>, b: &Vec<T>) -> bool {
+    let matching = a.iter().zip(b.iter()).filter(|&(a, b)| a == b).count();
+    matching == a.len() && matching == b.len()
+}
+
 /// A Python module implemented in Rust.
 #[pymodule]
 fn rust(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(score_guess, m)?)?;
     m.add_function(wrap_pyfunction!(score_all_words, m)?)?;
+    m.add_function(wrap_pyfunction!(filter_words, m)?)?;
     Ok(())
 }
 

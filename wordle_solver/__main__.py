@@ -6,12 +6,12 @@ import pickle
 import numpy as np
 
 import constants
+import rust
 import wordle
-
 
 with open(constants.PATH_TO_WORDS) as data_file:
     words = json.load(data_file)
-    all_words = wordle.get_bytecode_array(words["herrings"] + words["solutions"])
+    all_words = words["herrings"] + words["solutions"]
 
 # Caching the score_cards for faster results
 get_from_cache = exists(constants.PATH_TO_CACHE) and constants.USE_CACHE
@@ -19,11 +19,11 @@ if get_from_cache:
     with open(constants.PATH_TO_CACHE, "rb") as db:
         score_cards = pickle.load(db)
 else:
-    score_cards = wordle.score_all_words(all_words)
+    score_cards = rust.score_all_words(all_words, all_words)
 
 # refresh cache
-with open(constants.PATH_TO_CACHE, "wb") as db:
-    pickle.dump(score_cards, db)
+# with open(constants.PATH_TO_CACHE, "wb") as db:
+#     pickle.dump(score_cards, db)
 
 
 possible_solutions = np.ones(shape=all_words.shape[0], dtype=bool)
@@ -52,10 +52,9 @@ for round in range(constants.ROUNDS):
         sys.exit("I WIN!")
 
     # filter the possible solutions based on result
-    result = wordle.get_result_structure(feedback)
+    result = list(feedback)
     score_card = score_cards[display_name]
-    possible_solutions = wordle.filter_words(
-        best_guess,
+    possible_solutions = rust.filter_words(
         result,
         possible_solutions,
         score_card,
