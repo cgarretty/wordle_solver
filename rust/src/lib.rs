@@ -54,7 +54,7 @@ fn filter_words(guess_result: Vec<u8>, possible_solutions: Vec<bool>, score_card
     let mut possible_solutions_copy = possible_solutions.to_vec();
     
     for (i, score) in score_card.iter().enumerate() {
-        if do_vecs_match(score, &guess_result) {
+        if !do_vecs_match(&score, &guess_result) {
             possible_solutions_copy[i] = false;
         }
     }

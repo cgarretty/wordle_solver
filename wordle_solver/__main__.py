@@ -11,7 +11,7 @@ import wordle
 
 with open(constants.PATH_TO_WORDS) as data_file:
     words = json.load(data_file)
-    all_words = words["herrings"] + words["solutions"]
+    all_words = np.array(words["herrings"] + words["solutions"])
 
 # Caching the score_cards for faster results
 get_from_cache = exists(constants.PATH_TO_CACHE) and constants.USE_CACHE
@@ -22,8 +22,8 @@ else:
     score_cards = rust.score_all_words(all_words, all_words)
 
 # refresh cache
-# with open(constants.PATH_TO_CACHE, "wb") as db:
-#     pickle.dump(score_cards, db)
+with open(constants.PATH_TO_CACHE, "wb") as db:
+    pickle.dump(score_cards, db)
 
 
 possible_solutions = np.ones(shape=len(all_words), dtype=bool)
@@ -33,8 +33,8 @@ for round in range(constants.ROUNDS):
     # choose the best guess
     # pre-calculated first word for speed
     if round == 0 and constants.USE_PRECALC_FIRST_GUESS:
-        best_guess = "serai"
-        max_remaining = 697
+        best_guess = "nares"
+        max_remaining = 823
     else:
         best_guess, max_remaining = wordle.find_minimax(
             all_words[possible_solutions] if constants.HARD_MODE else all_words,
@@ -51,9 +51,10 @@ for round in range(constants.ROUNDS):
         sys.exit("I WIN!")
 
     # filter the possible solutions based on result
-    result = list(feedback)
-    score_card = score_cards[best_guess]
-    possible_solutions = rust.filter_words(
+    result = [int(tile) for tile in list(feedback)]
+    best_guess_index = np.where(all_words == best_guess)[0]
+    score_card = score_cards[best_guess_index]
+    possible_solutions = wordle.filter_words(
         result,
         possible_solutions,
         score_card,

@@ -1,6 +1,19 @@
 import numpy as np
 
-from wordle_solver.constants import HARD_MODE
+from constants import HARD_MODE
+
+
+def filter_words(
+    guess_result: list, possible_solutions: np.array, score_card: dict
+) -> np.array:
+    """Returns 1d Boolean array (length=possible_solutions)
+    where:
+      False=word is not a solution based on the board
+      True=word is still a possible solution
+    """
+    filtered = np.all(guess_result == score_card, axis=2)[0]
+
+    return np.logical_and(filtered, possible_solutions)
 
 
 def find_minimax(
