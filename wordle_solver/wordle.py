@@ -1,10 +1,10 @@
 import numpy as np
 
-from constants import HARD_MODE
+from wordle_solver.constants import HARD_MODE
 
 
 def find_minimax(
-    all_words: list[str], score_cards: dict, possible_solutions: np.array
+    all_words: list[str], score_cards: np.array, possible_solutions: np.array
 ) -> tuple:
     """Returns the best word to guess given the
     word list (all_words), how each word scores against
@@ -16,6 +16,7 @@ def find_minimax(
     case scenario (gets scored in a way that narrows down
     the solution as small as possible).
     """
+    word_count = len(all_words)
     # send the answer when possible_solutions is down to just one
     # True value. since np.argmin will behave unexpectedly.
     if sum(possible_solutions) == 1 and not HARD_MODE:
@@ -24,10 +25,10 @@ def find_minimax(
 
     # store count of the largest set of remaining words, if that index
     # in all_words were guessed.
-    max_remaining_words = np.zeros(shape=(len(all_words)), dtype=np.int64)
-    for word_index, word in enumerate(all_words):
+    max_remaining_words = np.zeros(shape=(word_count), dtype=np.int64)
+    for word_index in range(word_count):
         # get the score_card for each guessable word
-        score_card = score_cards[word]
+        score_card = score_cards[word_index]
         # find the largest set of a specfic result given a specific guess
         _, counts = np.unique(
             score_card[possible_solutions], return_counts=True, axis=(0)

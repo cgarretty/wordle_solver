@@ -26,14 +26,14 @@ else:
 #     pickle.dump(score_cards, db)
 
 
-possible_solutions = np.ones(shape=all_words.shape[0], dtype=bool)
+possible_solutions = np.ones(shape=len(all_words), dtype=bool)
 # start the rounds of guessing
 for round in range(constants.ROUNDS):
     print("possible_solutions remaining:", sum(possible_solutions))
     # choose the best guess
     # pre-calculated first word for speed
     if round == 0 and constants.USE_PRECALC_FIRST_GUESS:
-        best_guess = np.array([b"s", b"e", b"r", b"a", b"i"])
+        best_guess = "serai"
         max_remaining = 697
     else:
         best_guess, max_remaining = wordle.find_minimax(
@@ -43,8 +43,7 @@ for round in range(constants.ROUNDS):
         )
 
     # Write the best guess to screen
-    display_name = wordle.get_display_name(best_guess)
-    print(f"my best guess is {display_name} ({max_remaining} solutions at most)")
+    print(f"my best guess is {best_guess} ({max_remaining} solutions at most)")
 
     # get user input. String of 5 numbers (0=gray, 1=yellow, 2=green)
     feedback = input("feedback: ")
@@ -53,7 +52,7 @@ for round in range(constants.ROUNDS):
 
     # filter the possible solutions based on result
     result = list(feedback)
-    score_card = score_cards[display_name]
+    score_card = score_cards[best_guess]
     possible_solutions = rust.filter_words(
         result,
         possible_solutions,

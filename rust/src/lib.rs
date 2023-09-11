@@ -1,7 +1,5 @@
 use pyo3::prelude::*;
-use pyo3::types::{IntoPyDict, PyDict};
-use pyo3::ToPyObject;
-
+use numpy::{PyArray3};
 
 const GREEN: u8 = 2;
 const YELLOW: u8 = 1;
@@ -36,19 +34,19 @@ fn score_guess(answer: &str, guess: &str) -> [u8; 5] {
 }
 
 #[pyfunction]
-fn score_all_words(py: Python, answers: Vec<String>, guesses: Vec<String>) -> PyResult<Py<PyDict>> {    
+fn score_all_words(py: Python, answers: Vec<String>, guesses: Vec<String>) -> Py<PyAny> {    
     let mut score_card = vec![];
     let mut scores = vec![];
+    score_card.reserve_exact(guesses.len());
+    scores.reserve_exact(answers.len());
 
     for guess in guesses.iter() {
         scores.clear();
         scores = answers.iter().map(|answer| score_guess(&answer, &guess).to_vec()).collect();
-        score_card.push((guess, ToPyObject::to_object(&scores, py)));
+        score_card.push(scores.clone());
     }
 
-    let locals = score_card.into_py_dict(py);
-
-    Ok(locals.into())
+    return PyArray3::from_vec3(py, &score_card).expect("REASON").to_object(py).into();
 }
 
 #[pyfunction]
