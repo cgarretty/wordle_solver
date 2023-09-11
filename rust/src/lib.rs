@@ -32,16 +32,13 @@ fn score_guess(answer: &str, guess: &str) -> Vec<Vec<bool>> {
 }
 
 #[pyfunction]
-fn score_all_words(py: Python, answers: Vec<String>, guesses: Vec<String>) -> PyResult<Py<PyDict>> {
+fn score_all_words(py: Python, answers: Vec<String>, guesses: Vec<String>) -> PyResult<Py<PyDict>> {    
     let mut score_card = vec![];
-    score_card.reserve_exact(guesses.len());
-    
-    for guess in guesses {
-        let mut scores = vec![];
-        scores.reserve_exact(answers.len());
-        for answer in &answers {
-            scores.push(score_guess(answer, &guess));
-        };
+    let mut scores = vec![];
+
+    for guess in guesses.iter() {
+        scores.clear();
+        scores = answers.iter().map(|answer| score_guess(&answer, &guess)).collect();
         let numpy_array = PyArray3::from_vec3(py, &scores);
         score_card.push((guess, numpy_array?.to_object(py)));
     }
