@@ -25,6 +25,21 @@ def test_tougher_example_is_correct():
     assert test_result == game.score(guess)
 
 
+def test_another_tough_example_is_correct():
+    game = wordle.Board(answer="stoop")
+    guess = "books"
+
+    test_result = [
+        wordle.GRAY,
+        wordle.YELLOW,
+        wordle.GREEN,
+        wordle.GRAY,
+        wordle.YELLOW,
+    ]
+
+    assert test_result == game.score(guess)
+
+
 def test_with_repeated_letters_in_answer():
     game = wordle.Board(answer="steep")
     guess = "elect"
