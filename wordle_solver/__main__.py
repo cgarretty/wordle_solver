@@ -2,6 +2,7 @@ import json
 import sys
 from os.path import exists
 import pickle
+import functools
 
 import numpy as np
 
@@ -27,6 +28,9 @@ with open(constants.PATH_TO_CACHE, "wb") as db:
 
 
 possible_solutions = np.ones(shape=len(all_words), dtype=bool)
+get_score_card = functools.partial(
+    wordle.get_from_index, index=all_words, array=score_cards
+)
 # start the rounds of guessing
 for round in range(constants.ROUNDS):
     print("possible_solutions remaining:", sum(possible_solutions))
@@ -37,7 +41,7 @@ for round in range(constants.ROUNDS):
         max_remaining = 823
     else:
         best_guess, max_remaining = wordle.find_minimax(
-            all_words[possible_solutions] if constants.HARD_MODE else all_words,
+            all_words,
             score_cards,
             possible_solutions,
         )
@@ -52,8 +56,7 @@ for round in range(constants.ROUNDS):
 
     # filter the possible solutions based on result
     result = [int(tile) for tile in list(feedback)]
-    best_guess_index = np.where(all_words == best_guess)[0]
-    score_card = score_cards[best_guess_index]
+    score_card = get_score_card(best_guess)
     possible_solutions = wordle.filter_words(
         result,
         possible_solutions,

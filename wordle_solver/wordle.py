@@ -1,6 +1,16 @@
+from functools import partial
 import numpy as np
 
 from constants import HARD_MODE
+
+
+def get_from_index(key, index, array):
+    """Returns the value at the index of the array
+    stored in a separate index location.
+    """
+    i = np.where(index == key)[0]
+
+    return array[i] if i else ValueError(f"key {key} not found in index")
 
 
 def filter_words(
@@ -11,7 +21,8 @@ def filter_words(
       False=word is not a solution based on the board
       True=word is still a possible solution
     """
-    filtered = np.all(guess_result == score_card, axis=2)[0]
+    compare_to_result = partial(np.array_equal, guess_result)
+    filtered = np.apply_along_axis(compare_to_result, 2, score_card).flatten()
 
     return np.logical_and(filtered, possible_solutions)
 
@@ -32,7 +43,7 @@ def find_minimax(
     word_count = len(all_words)
     # send the answer when possible_solutions is down to just one
     # True value. since np.argmin will behave unexpectedly.
-    if sum(possible_solutions) == 1 and not HARD_MODE:
+    if sum(possible_solutions) == 1:
         answer_index = np.argmax(possible_solutions)
         return all_words[answer_index], 0
 
