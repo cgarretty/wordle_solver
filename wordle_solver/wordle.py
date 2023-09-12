@@ -49,8 +49,10 @@ def find_minimax(
 
     # store count of the largest set of remaining words, if that index
     # in all_words were guessed.
-    max_remaining_words = np.zeros(shape=(word_count), dtype=np.int64)
+    max_remaining_words = np.empty(shape=(word_count), dtype=np.int64)
     for word_index in range(word_count):
+        if not possible_solutions[word_index] and HARD_MODE:
+            continue
         # get the score_card for each guessable word
         score_card = score_cards[word_index]
         # find the largest set of a specfic result given a specific guess

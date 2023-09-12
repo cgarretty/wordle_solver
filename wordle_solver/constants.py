@@ -1,5 +1,5 @@
 # Game config
-HARD_MODE = False
+HARD_MODE = True
 WORD_SIZE = 5
 ROUNDS = 6
 PATH_TO_WORDS = "./database.json"
