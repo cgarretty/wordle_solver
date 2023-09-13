@@ -54,6 +54,20 @@ def test_with_repeated_letters_in_answer():
     assert test_results == game.score(guess)
 
 
+def test_broken_example():
+    game = wordle.Board(answer="clear")
+    guess = "nares"
+    test_results = [
+        wordle.GRAY,
+        wordle.YELLOW,
+        wordle.YELLOW,
+        wordle.YELLOW,
+        wordle.GRAY,
+    ]
+
+    assert test_results == game.score(guess)
+
+
 def test_out_of_guesses():
     game = wordle.Board(answer="steep", max_guesses=6)
     guesses = ["elect", "treat", "treat", "treat", "treat"]

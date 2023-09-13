@@ -44,6 +44,7 @@ for round in range(constants.ROUNDS):
             all_words,
             score_cards,
             possible_solutions,
+            # hard_mode=constants.HARD_MODE,
         )
 
     # Write the best guess to screen
