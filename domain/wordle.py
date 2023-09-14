@@ -20,7 +20,7 @@ class Board:
     def score(self, guess):
         self.guesses.append(guess)
 
-        score = [tile for tile in score_guess(self.answer, guess)]
+        score = [int(tile) for tile in score_guess(self.answer, guess)]
 
         self.scores.append(score)
 

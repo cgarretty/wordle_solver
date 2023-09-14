@@ -1,6 +1,8 @@
 from functools import partial
 import numpy as np
+from datetime import datetime
 
+import rust
 from constants import HARD_MODE
 
 
@@ -43,27 +45,28 @@ def find_minimax(
     word_count = len(all_words)
     # send the answer when possible_solutions is down to just one
     # True value. since np.argmin will behave unexpectedly.
+
     if sum(possible_solutions) == 1:
         answer_index = np.argmax(possible_solutions)
         return all_words[answer_index], 0
 
     # store count of the largest set of remaining words, if that index
     # in all_words were guessed.
-    max_remaining_words = np.empty(shape=(word_count), dtype=np.int64)
-    for word_index in range(word_count):
-        if not possible_solutions[word_index] and HARD_MODE:
-            continue
-        # get the score_card for each guessable word
-        score_card = score_cards[word_index]
-        # find the largest set of a specfic result given a specific guess
-        _, counts = np.unique(
-            score_card[possible_solutions], return_counts=True, axis=(0)
-        )
-        count_of_biggest_group = max(counts)
-        max_remaining_words[word_index] = count_of_biggest_group
+    print("start time: ", datetime.now().strftime("%H:%M:%S"))
 
-    best_index = np.argmin(max_remaining_words)
-    best_word = all_words[best_index]
-    remaining_after_guess = max_remaining_words[best_index]
+    maxes = [
+        rust.highest_count_of_unique_arrays(score_card[possible_solutions])
+        for score_card in score_cards
+    ]
+    maxes = np.array(maxes)
 
-    return best_word, remaining_after_guess
+    if HARD_MODE:
+        best_index = np.argmin(maxes[possible_solutions])
+    else:
+        best_index = np.argmax(maxes)
+
+    best_index, max_remaining = rust.find_minmax(score_cards)
+
+    print("end time: ", datetime.now().strftime("%H:%M:%S"))
+
+    return all_words[best_index], max_remaining

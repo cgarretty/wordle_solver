@@ -5,6 +5,7 @@ import pickle
 import functools
 
 import numpy as np
+import polars as pl
 
 import constants
 import rust
@@ -21,6 +22,8 @@ if get_from_cache:
         score_cards = pickle.load(db)
 else:
     score_cards = rust.score_all_words(all_words, all_words)
+
+score_cards = pl.DataFrame(score_cards)
 
 # refresh cache
 with open(constants.PATH_TO_CACHE, "wb") as db:

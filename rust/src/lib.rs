@@ -1,12 +1,14 @@
+use polars::prelude::*;
+use std::collections::HashMap;
 use pyo3::prelude::*;
-use numpy::{PyArray3};
+use pyo3_polars::PyDataFrame;
 
 const GREEN: u8 = 2;
 const YELLOW: u8 = 1;
 const GRAY: u8 = 0;
 
 #[pyfunction]
-fn score_guess(answer: &str, guess: &str) -> [u8; 5] {
+fn score_guess(answer: &str, guess: &str) -> String {
     let mut score: [u8; 5] = [GRAY; 5];
     let mut settled_answer_letters = [false; 5];
 
@@ -25,23 +27,39 @@ fn score_guess(answer: &str, guess: &str) -> [u8; 5] {
             }
         }
     }
-    return score
+    
+    //convert to string
+    let score_string: String = score.iter().map(|&x| x.to_string()).collect();
+    
+    return score_string;
+    
 }
 
 #[pyfunction]
-fn score_all_words(py: Python, answers: Vec<&str>, guesses: Vec<&str>) -> Py<PyAny> {    
-    let mut score_card = vec![];
-    let mut scores = vec![];
-    score_card.reserve_exact(guesses.len());
-    scores.reserve_exact(answers.len());
-
-    for guess in guesses.iter() {
-        scores.clear();
-        scores = answers.iter().map(|answer| score_guess(&answer, &guess).to_vec()).collect();
-        score_card.push(scores.clone());
+fn score_all_words(answers: Vec<&str>, guesses: Vec<&str>) -> PyResult<PyDataFrame> {    
+    let mut df = DataFrame::default();
+    
+    for answer in answers.iter() {
+        let scores: Vec<String> = guesses.iter().map(|guess| score_guess(&answer, &guess)).collect();
+        df.with_column(Series::new(answer, scores)).unwrap();
     }
 
-    return PyArray3::from_vec3(py, &score_card).expect("REASON").to_object(py).into();
+    return Ok(PyDataFrame(df));
+}
+
+#[pyfunction]
+fn highest_count_of_unique_arrays(vectors: Vec<Vec<u8>>) -> usize {
+    let mut unique_arrays = HashMap::new();
+    let mut max_count = 0;
+    for vector in vectors {
+        let count = unique_arrays.entry(vector).or_insert(0);
+        *count += 1;
+        if *count > max_count {
+            max_count = *count;
+        }
+    }
+    
+    return max_count;
 }
 
 
@@ -50,6 +68,7 @@ fn score_all_words(py: Python, answers: Vec<&str>, guesses: Vec<&str>) -> Py<PyA
 fn rust(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(score_guess, m)?)?;
     m.add_function(wrap_pyfunction!(score_all_words, m)?)?;
+    m.add_function(wrap_pyfunction!(highest_count_of_unique_arrays, m)?)?;
     Ok(())
 }
 
