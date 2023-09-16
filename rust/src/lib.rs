@@ -1,6 +1,7 @@
 use polars::prelude::*;
-use std::collections::HashMap;
 use pyo3::prelude::*;
+use rayon::prelude::*;
+use pyo3_polars::PySeries;
 use pyo3_polars::PyDataFrame;
 
 const GREEN: u8 = 2;
@@ -38,28 +39,19 @@ fn score_guess(answer: &str, guess: &str) -> String {
 #[pyfunction]
 fn score_all_words(answers: Vec<&str>, guesses: Vec<&str>) -> PyResult<PyDataFrame> {    
     let mut df = DataFrame::default();
-    
+    df.with_column(Series::new("_guess", &guesses)).unwrap();
     for answer in answers.iter() {
-        let scores: Vec<String> = guesses.iter().map(|guess| score_guess(&answer, &guess)).collect();
-        df.with_column(Series::new(answer, scores)).unwrap();
+        let scores: Vec<String> = guesses.par_iter().map(|guess| score_guess(&answer, &guess)).collect();
+        df.with_column(Series::new(&answer, &scores)).unwrap();
     }
+    return Ok(PyDataFrame(df.melt(["_guess"], answers).unwrap()));
 
-    return Ok(PyDataFrame(df));
 }
 
 #[pyfunction]
-fn highest_count_of_unique_arrays(vectors: Vec<Vec<u8>>) -> usize {
-    let mut unique_arrays = HashMap::new();
-    let mut max_count = 0;
-    for vector in vectors {
-        let count = unique_arrays.entry(vector).or_insert(0);
-        *count += 1;
-        if *count > max_count {
-            max_count = *count;
-        }
-    }
-    
-    return max_count;
+fn highest_count_of_unique(vectors: PySeries) -> usize {
+    let v: Series = vectors.into();
+    v.value_counts(true, true).expect("REASON")["counts"].max().unwrap()
 }
 
 
@@ -68,7 +60,7 @@ fn highest_count_of_unique_arrays(vectors: Vec<Vec<u8>>) -> usize {
 fn rust(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(score_guess, m)?)?;
     m.add_function(wrap_pyfunction!(score_all_words, m)?)?;
-    m.add_function(wrap_pyfunction!(highest_count_of_unique_arrays, m)?)?;
+    m.add_function(wrap_pyfunction!(highest_count_of_unique, m)?)?;
     Ok(())
 }
 

@@ -23,12 +23,9 @@ if get_from_cache:
 else:
     score_cards = rust.score_all_words(all_words, all_words)
 
-score_cards = pl.DataFrame(score_cards)
-
 # refresh cache
 with open(constants.PATH_TO_CACHE, "wb") as db:
     pickle.dump(score_cards, db)
-
 
 possible_solutions = np.ones(shape=len(all_words), dtype=bool)
 get_score_card = functools.partial(
@@ -40,8 +37,8 @@ for round in range(constants.ROUNDS):
     # choose the best guess
     # pre-calculated first word for speed
     if round == 0 and constants.USE_PRECALC_FIRST_GUESS:
-        best_guess = "nares"
-        max_remaining = 823
+        best_guess = "serai"
+        max_remaining = 697
     else:
         best_guess, max_remaining = wordle.find_minimax(
             all_words,

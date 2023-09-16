@@ -19,14 +19,10 @@ class Board:
 
     def score(self, guess):
         self.guesses.append(guess)
-
         score = [int(tile) for tile in score_guess(self.answer, guess)]
-
         self.scores.append(score)
-
         if score == [GREEN] * WORD_SIZE:
             raise YouWin
-
         if len(self.guesses) >= self.max_guesses:
             raise OutOfGuesses
 

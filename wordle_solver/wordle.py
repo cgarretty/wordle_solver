@@ -2,8 +2,11 @@ from functools import partial
 import numpy as np
 from datetime import datetime
 
+import polars as pl
+
 import rust
-from constants import HARD_MODE
+
+from wordle_solver.constants import HARD_MODE
 
 
 def get_from_index(key, index, array):
@@ -42,31 +45,47 @@ def find_minimax(
     case scenario (gets scored in a way that narrows down
     the solution as small as possible).
     """
-    word_count = len(all_words)
-    # send the answer when possible_solutions is down to just one
-    # True value. since np.argmin will behave unexpectedly.
 
-    if sum(possible_solutions) == 1:
-        answer_index = np.argmax(possible_solutions)
-        return all_words[answer_index], 0
+    max_remaining = score_cards.map_rows(
+        lambda x: rust.highest_count_of_unique(pl.Series(x))
+    )
 
-    # store count of the largest set of remaining words, if that index
-    # in all_words were guessed.
-    print("start time: ", datetime.now().strftime("%H:%M:%S"))
+    best_index = max_remaining.select(pl.col("map").arg_min())[0, 0]
 
-    maxes = [
-        rust.highest_count_of_unique_arrays(score_card[possible_solutions])
-        for score_card in score_cards
-    ]
-    maxes = np.array(maxes)
+    return all_words[best_index], max_remaining.min()[0, 0]
 
-    if HARD_MODE:
-        best_index = np.argmin(maxes[possible_solutions])
-    else:
-        best_index = np.argmax(maxes)
 
-    best_index, max_remaining = rust.find_minmax(score_cards)
+def get_best_guess(score_cards: pl.DataFrame) -> pl.DataFrame:
+    possible_solutions = score_cards.clone()
+    K = 5  # limit top guesses
+    N = 6  # number of rounds to run
+    for round_num in range(N):
+        worst_cases = (
+            (
+                possible_solutions.group_by("_guess", "value")
+                .count()
+                # filter to maximun count for each guess
+                .filter(pl.col("count").max().over("_guess") == pl.col("count"))
+                .select("_guess", pl.col("value"), "count")
+                .sort("count")[0:K]  # limit to top K
+            )
+            # join to create possible_solutions remainging.
+            .join(score_cards, how="inner", on=["_guess", "value"]).select(
+                "_guess",
+                pl.col("variable"),  # possible solutions remaining
+            )
+        )
 
-    print("end time: ", datetime.now().strftime("%H:%M:%S"))
+        best_worst_cases = worst_cases.group_by("_guess").agg(
+            pl.col("variable").count().alias("count")
+        )
+        print(f"round {round_num}: best guesses so far are")
+        print(best_worst_cases)
 
-    return all_words[best_index], max_remaining
+        possible_solutions = worst_cases.join(
+            score_cards, how="left", on=["variable"]
+        ).select(
+            pl.col("_guess_right").alias("_guess"),
+            "variable",
+            "value",
+        )
