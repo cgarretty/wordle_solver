@@ -2,11 +2,9 @@ from functools import partial
 import numpy as np
 from datetime import datetime
 
-import polars as pl
+import fortran_wordle  # fortran module
 
-import rust
-
-from wordle_solver.constants import HARD_MODE
+from constants import HARD_MODE
 
 
 def get_from_index(key, index, array):
@@ -18,22 +16,20 @@ def get_from_index(key, index, array):
     return array[i] if i else ValueError(f"key {key} not found in index")
 
 
-def filter_words(
-    guess_result: list, possible_solutions: np.array, score_card: dict
-) -> np.array:
+def filter_words(guess, score, answers) -> np.array:
     """Returns 1d Boolean array (length=possible_solutions)
     where:
       False=word is not a solution based on the board
       True=word is still a possible solution
     """
-    compare_to_result = partial(np.array_equal, guess_result)
-    filtered = np.apply_along_axis(compare_to_result, 2, score_card).flatten()
+    scores = fortran_wordle.score_guesses(
+        np.array([guess], "bytes", order="C"), answers
+    )
+    return answers[scores.squeeze() == score]
 
-    return np.logical_and(filtered, possible_solutions)
 
-
-def find_minimax(
-    all_words: list[str], score_cards: np.array, possible_solutions: np.array
+def find_best_guess(
+    answers: list, guesses: list, depth: int = 3, breadth: int = 5
 ) -> tuple:
     """Returns the best word to guess given the
     word list (all_words), how each word scores against
@@ -46,46 +42,15 @@ def find_minimax(
     the solution as small as possible).
     """
 
-    max_remaining = score_cards.map_rows(
-        lambda x: rust.highest_count_of_unique(pl.Series(x))
-    )
+    if answers.shape[0] == 1:
+        return answers[0], 1
 
-    best_index = max_remaining.select(pl.col("map").arg_min())[0, 0]
+    # initialize possible solutions to all words
+    score_cards = fortran_wordle.score_guesses(guesses, answers)
 
-    return all_words[best_index], max_remaining.min()[0, 0]
+    find_worst_case = lambda x: np.unique(x, return_counts=True)[1].max()
+    worst_cases = np.apply_along_axis(find_worst_case, 1, score_cards)
+    best_worst_case_index = worst_cases.argmin()
 
-
-def get_best_guess(score_cards: pl.DataFrame) -> pl.DataFrame:
-    possible_solutions = score_cards.clone()
-    K = 5  # limit top guesses
-    N = 6  # number of rounds to run
-    for round_num in range(N):
-        worst_cases = (
-            (
-                possible_solutions.group_by("_guess", "value")
-                .count()
-                # filter to maximun count for each guess
-                .filter(pl.col("count").max().over("_guess") == pl.col("count"))
-                .select("_guess", pl.col("value"), "count")
-                .sort("count")[0:K]  # limit to top K
-            )
-            # join to create possible_solutions remainging.
-            .join(score_cards, how="inner", on=["_guess", "value"]).select(
-                "_guess",
-                pl.col("variable"),  # possible solutions remaining
-            )
-        )
-
-        best_worst_cases = worst_cases.group_by("_guess").agg(
-            pl.col("variable").count().alias("count")
-        )
-        print(f"round {round_num}: best guesses so far are")
-        print(best_worst_cases)
-
-        possible_solutions = worst_cases.join(
-            score_cards, how="left", on=["variable"]
-        ).select(
-            pl.col("_guess_right").alias("_guess"),
-            "variable",
-            "value",
-        )
+    # return word and max remaining words after guessing it.
+    return guesses[best_worst_case_index], worst_cases[best_worst_case_index]

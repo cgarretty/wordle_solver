@@ -3,7 +3,7 @@ function score_guesses(guesses, answers) result(scores)
     implicit none
 
     character(len=5), dimension(:), intent(in) :: guesses, answers
-    character(len=5), dimension(size(guesses) * size(answers)) :: scores
+    character(len=5), dimension(size(guesses), size(answers)) :: scores
     integer :: i
     integer :: j
     integer :: answer_size
@@ -14,7 +14,7 @@ function score_guesses(guesses, answers) result(scores)
 
     do i = 1, guess_size
         do j = 1, answer_size
-            scores((i * guess_size) - guess_size + j) = score_guess(guesses(i), answers(j))
+            scores(i, j) = score_guess(guesses(i), answers(j))
         end do
     end do
 
