@@ -48,7 +48,7 @@ def find_best_worst_case(
 
 
 def find_best_guess(
-    answers: list, guesses: list, round: int = None, breadth: int = 5
+    answers: list, guesses: list, round: int = None, breadth: int = 10
 ) -> tuple:
     """Returns the best word to guess given the
     word list (all_words), how each word scores against
