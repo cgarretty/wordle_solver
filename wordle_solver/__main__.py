@@ -7,15 +7,17 @@ import wordle
 
 with open(constants.PATH_TO_WORDS) as data_file:
     words = json.load(data_file)
-    all_words = np.array(words["solutions"] + words["herrings"], "bytes", order="C")
-
-answers, guesses = all_words, all_words
+    guesses = np.array(words["solutions"] + words["herrings"], "bytes", order="C")
+    answers = (
+        np.array(words["solutions"], "bytes", order="C")
+        if not constants.EXPANDED_SOLUTIONS
+        else guesses
+    )
 
 0  # start the rounds of guessing
 for round in range(constants.ROUNDS):
     print("possible_solutions remaining:", len(answers))
     best_guess, max_rounds = wordle.find_best_guess(answers, guesses, round=round)
-    print(best_guess, max_rounds)
     # Write the best guess to screen
     print(
         f"my best guess is {str(best_guess, encoding='utf-8').upper()}"

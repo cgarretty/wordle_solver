@@ -63,7 +63,6 @@ def find_best_guess(
     the solution as small as possible).
     """
     if answers.shape[0] == 1:
-        print(f"SOLVED in round {round} -- answer: {answers[0]}")
         return answers[0], round + 1
 
     # initialize possible solutions to all words
