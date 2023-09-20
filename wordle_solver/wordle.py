@@ -1,6 +1,5 @@
-from functools import partial
+import collections
 import numpy as np
-from datetime import datetime
 
 import fortran_wordle  # fortran module
 
@@ -28,8 +27,30 @@ def filter_words(guess, score, answers) -> np.array:
     return answers[scores.squeeze() == score]
 
 
+def find_worst_case(cases: np.array) -> np.array:
+    worst_cases = lambda x: x.most_common(1)[0]
+    return [worst_cases(c) for c in cases]
+
+
+def find_best_worst_case(
+    worst_cases: np.array, guesses: np.array, breadth: int
+) -> np.array:
+    scores, counts = zip(*worst_cases)
+    scores = np.array(scores)
+    counts = np.array(counts)
+    # find gueseses, score and count of the best worst case
+    sorted = np.argsort(counts)
+    top_guesses = np.take_along_axis(guesses, sorted, axis=0)[:breadth]
+    top_counts = np.take_along_axis(counts, sorted, axis=0)[:breadth]
+    top_scores = np.take_along_axis(scores, sorted, axis=0)[:breadth]
+
+    return np.array(
+        list(zip(top_guesses.tolist(), top_scores.tolist(), top_counts.tolist()))
+    )
+
+
 def find_best_guess(
-    answers: list, guesses: list, depth: int = 3, breadth: int = 5
+    answers: list, guesses: list, round: int = None, breadth: int = 5
 ) -> tuple:
     """Returns the best word to guess given the
     word list (all_words), how each word scores against
@@ -41,16 +62,21 @@ def find_best_guess(
     case scenario (gets scored in a way that narrows down
     the solution as small as possible).
     """
-
     if answers.shape[0] == 1:
-        return answers[0], 1
+        print(f"SOLVED in round {round} -- answer: {answers[0]}")
+        return answers[0], round + 1
 
     # initialize possible solutions to all words
     score_cards = fortran_wordle.score_guesses(guesses, answers)
+    cases = np.apply_along_axis(collections.Counter, 1, score_cards)
 
-    find_worst_case = lambda x: np.unique(x, return_counts=True)[1].max()
-    worst_cases = np.apply_along_axis(find_worst_case, 1, score_cards)
-    best_worst_case_index = worst_cases.argmin()
+    worst_cases = find_worst_case(cases)
+    best_worst_cases = find_best_worst_case(worst_cases, guesses, breadth)
 
-    # return word and max remaining words after guessing it.
-    return guesses[best_worst_case_index], worst_cases[best_worst_case_index]
+    max_rounds = []
+    for i, (guess, worst_case, count) in enumerate(best_worst_cases):
+        a = filter_words(guess, worst_case, answers)
+        g, r = find_best_guess(a, guesses, round=(round + 1))
+        max_rounds.append(r)
+
+    return best_worst_cases[np.argmin(max_rounds)][0], np.min(max_rounds)
