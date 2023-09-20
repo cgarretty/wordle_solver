@@ -16,7 +16,7 @@ with open(constants.PATH_TO_WORDS) as data_file:
 
 0  # start the rounds of guessing
 for round in range(constants.ROUNDS):
-    print("possible_solutions remaining:", len(answers))
+    print("possible answers remaining:", len(answers))
     best_guess, max_rounds = wordle.find_best_guess(answers, guesses, round=round)
     # Write the best guess to screen
     print(

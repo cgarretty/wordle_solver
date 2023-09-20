@@ -44,9 +44,7 @@ def find_best_worst_case(
     top_counts = np.take_along_axis(counts, sorted, axis=0)[:breadth]
     top_scores = np.take_along_axis(scores, sorted, axis=0)[:breadth]
 
-    return np.array(
-        list(zip(top_guesses.tolist(), top_scores.tolist(), top_counts.tolist()))
-    )
+    return list(zip(top_guesses.tolist(), top_scores.tolist(), top_counts.tolist()))
 
 
 def find_best_guess(
@@ -75,7 +73,13 @@ def find_best_guess(
     max_rounds = []
     for i, (guess, worst_case, count) in enumerate(best_worst_cases):
         a = filter_words(guess, worst_case, answers)
+        # if HARD_MODE:
+        #     guesses = filter_words(guess, worst_case, guesses)
+
         g, r = find_best_guess(a, guesses, round=(round + 1))
         max_rounds.append(r)
 
-    return best_worst_cases[np.argmin(max_rounds)][0], np.min(max_rounds)
+    cases = list(zip(best_worst_cases, max_rounds))
+    cases.sort(key=lambda x: (x[1], x[0][2]))
+
+    return cases[0][0][0], cases[0][1]
