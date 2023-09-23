@@ -3,22 +3,33 @@ import json
 import sys
 
 import colorama
+import click
+import numpy as np
 
-from domain import wordle
+from domain import constants, wordle
 
 YELLOW_EMOJI = "🟨"
 GRAY_EMOJI = "⬛"
 GREEN_EMOJI = "🟩"
 
+
 def scorecard(board):
-    return "Scorecard:\n" + \
-    f"Wordle ### {len(board.guesses)}/{board.max_guesses}\n" + \
-    "\n".join(
-        "".join(
-            GREEN_EMOJI if tile == wordle.GREEN else YELLOW_EMOJI if tile == wordle.YELLOW else GRAY_EMOJI
-            for tile in score
-        ) for score in board.scores
+    return (
+        "Scorecard:\n"
+        + f"Wordle ### {len(board.guesses)}/{board.max_guesses}\n"
+        + "\n".join(
+            "".join(
+                GREEN_EMOJI
+                if tile == wordle.GREEN
+                else YELLOW_EMOJI
+                if tile == wordle.YELLOW
+                else GRAY_EMOJI
+                for tile in score
+            )
+            for score in board.scores
+        )
     )
+
 
 def play_wordle(board: wordle.Board, wordlist) -> None:
     colorama.init()
@@ -43,7 +54,7 @@ def play_wordle(board: wordle.Board, wordlist) -> None:
                     for letter, tile in zip(guess.upper(), score)
                 )
             )
-            
+
         except wordle.YouWin:
             print(colorama.Fore.GREEN + board.answer.upper(), "You win!")
             colorama.deinit()
@@ -56,10 +67,58 @@ def play_wordle(board: wordle.Board, wordlist) -> None:
             break
 
 
-if __name__ == "__main__":
+@click.group()
+def play():
+    click.echo("Welcome to Wordle!")
+
+
+@play.command()
+def play_random():
     with open("database.json", "r") as f:
         word_lists = json.load(f)
     all_words = word_lists["herrings"] + word_lists["solutions"]
     answer = random.choice(word_lists["solutions"])
     board = wordle.Board(answer=answer)
     play_wordle(board, all_words)
+
+
+@play.command()
+def wordle_solver():
+    with open(constants.PATH_TO_WORDS) as data_file:
+        words = json.load(data_file)
+        guesses = np.array(words["solutions"] + words["herrings"], "bytes", order="C")
+        answers = (
+            np.array(words["solutions"], "bytes", order="C")
+            if not constants.EXPANDED_SOLUTIONS
+            else guesses
+        )
+
+    0  # start the rounds of guessing
+    for round in range(constants.ROUNDS):
+        print("possible answers remaining:", len(answers))
+        best_guess, max_rounds = wordle.find_best_guess(answers, guesses)
+        # Write the best guess to screen
+        print(
+            f"my best guess is {str(best_guess, encoding='utf-8').upper()}"
+            f" ({max_rounds} rounds at most)"
+        )
+
+        # get user input. String of 5 numbers (0=gray, 1=yellow, 2=green)
+        score = input("feedback: ")
+        if score == "22222":
+            sys.exit("I WIN!")
+        else:
+            # filter the possible solutions based on result
+            answers = wordle.filter_words(
+                best_guess, bytes(score, encoding="utf-8"), answers
+            )
+            if constants.HARD_MODE:
+                guesses = wordle.filter_words(
+                    best_guess, bytes(score, encoding="utf-8"), guesses
+                )
+
+    print("I LOSE :(")
+
+
+if __name__ == "__main__":
+    play()

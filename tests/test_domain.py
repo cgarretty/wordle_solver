@@ -88,3 +88,20 @@ def test_you_win():
 
     with pytest.raises(wordle.YouWin):
         game.score("steep")
+
+
+def test_guess_case_lt():
+    first_guess = wordle.GuessCase(guess=b"serai", score=b"00010", count=697)
+    second_guess = wordle.GuessCase(guess=b"phony", score=b"00000", count=480)
+
+    assert first_guess > second_guess
+
+
+def test_guess_case_sort():
+    cases = [
+        wordle.GuessCase(guess=b"serai", score=b"00010", count=697),
+        wordle.GuessCase(guess=b"phony", score=b"00000", count=480),
+    ]
+    cases.sort()
+
+    assert cases[0].guess == b"phony"

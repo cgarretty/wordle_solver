@@ -2,8 +2,7 @@ import json
 import sys
 import numpy as np
 
-import constants
-import wordle
+from domain import constants, wordle
 
 with open(constants.PATH_TO_WORDS) as data_file:
     words = json.load(data_file)
@@ -33,5 +32,9 @@ for round in range(constants.ROUNDS):
         answers = wordle.filter_words(
             best_guess, bytes(score, encoding="utf-8"), answers
         )
+        if constants.HARD_MODE:
+            guesses = wordle.filter_words(
+                best_guess, bytes(score, encoding="utf-8"), guesses
+            )
 
 print("I LOSE :(")
