@@ -16,3 +16,4 @@ python_version = "3.9.6"
 
 [dev-packages]
 ipython = "==7.31"
+snakeviz = "*"

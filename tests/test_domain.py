@@ -97,11 +97,21 @@ def test_guess_case_lt():
     assert first_guess > second_guess
 
 
-def test_guess_case_sort():
+def test_guess_case_sort_1():
     cases = [
-        wordle.GuessCase(guess=b"serai", score=b"00010", count=697),
-        wordle.GuessCase(guess=b"phony", score=b"00000", count=480),
+        wordle.GuessCase(guess=b"serai", score=b"01110", count=697),
+        wordle.GuessCase(guess=b"phony", score=b"00200", count=697),
     ]
     cases.sort()
 
     assert cases[0].guess == b"phony"
+
+
+def test_guess_case_sort_1():
+    cases = [
+        wordle.GuessCase(guess=b"test1", score=b"00102", count=697),
+        wordle.GuessCase(guess=b"test2", score=b"00200", count=697),
+    ]
+    cases.sort()
+
+    assert cases[0].guess == b"test1"

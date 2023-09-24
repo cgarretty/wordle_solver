@@ -130,3 +130,6 @@ dmypy.json
 
 # bin files
 *.pickle
+
+# profiling files
+program.prof
