@@ -98,11 +98,11 @@ def wordle_solver():
         print("possible answers remaining:", len(answers))
         case = wordle.find_best_guess(answers, guesses)
         best_guess = case.root()
-        total_rounds = case.total_parents()
+        total_rounds = case.total_parents() + 1
         # Write the best guess to screen
         print(
             f"my best guess is {str(best_guess.guess, encoding='utf-8').upper()}"
-            f" ({best_guess.count} max answers left, and {total_rounds} rounds at most)"
+            f" ({best_guess.count} max answers left after guess, and {total_rounds} round(s) left)"
         )
 
         # get user input. String of 5 numbers (0=gray, 1=yellow, 2=green)
