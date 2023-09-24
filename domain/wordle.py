@@ -2,7 +2,7 @@ from attrs import define, Factory, field, cmp_using
 import numpy as np
 import collections
 
-from domain import fortran_wordle
+from domain import fortran_wordle, constants
 
 WORD_SIZE = 5
 
@@ -44,11 +44,17 @@ class GuessCase:
         else:
             return self.count + self.parent.total_count()
 
-    def root(self):
+    def list_parents(self):
+        if self.parent is None:
+            return [self]
+        else:
+            return [self] + self.parent.list_parents()
+
+    def root(self, round: int = 0):
         if self.parent is None:
             return self
         else:
-            return self.parent.root()
+            return sorted(self.list_parents())[round]
 
     def filter_words(self, answers):
         possible_solutions = answers[
@@ -114,6 +120,7 @@ def find_best_guess(
     information to elimate the most words in the worst
     case scenario, in the least rounds.
     """
+
     # base case: only one answer left
     if answers.shape[0] == 1:
         return GuessCase(answers[0], b"22222", 0, parent=parent_case)

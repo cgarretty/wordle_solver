@@ -111,12 +111,16 @@ def wordle_solver():
             sys.exit("I WIN!")
         else:
             # filter the possible solutions based on result
-            case = wordle.GuessCase(
+            result_case = wordle.GuessCase(
                 best_guess.guess,
                 bytes(score, encoding="utf-8"),
+                parent=result_case if round > 0 else None,
             )
-            answers = case.filter_words(answers)
-            case.count = len(answers)
+            answers = result_case.filter_words(answers)
+            result_case.count = len(answers)
+
+            if constants.HARD_MODE:
+                guesses = result_case.filter_words(guesses)
 
     print("I LOSE :(")
 
