@@ -54,7 +54,8 @@ class GuessCase:
         if self.parent is None:
             return self
         else:
-            return sorted(self.list_parents())[round]
+            parents = sorted(self.list_parents())
+            return parents[round]
 
     def filter_words(self, answers):
         possible_solutions = answers[
@@ -123,7 +124,11 @@ def find_best_guess(
 
     # base case: only one answer left
     if answers.shape[0] == 1:
-        return GuessCase(answers[0], b"22222", 0, parent=parent_case)
+        final = GuessCase(answers[0], b"22222", 0, parent=parent_case)
+        return final
+
+    if constants.HARD_MODE and parent_case:
+        guesses = parent_case.filter_words(guesses)
 
     # initialize scores to all guesses for all answers
     score_cards = fortran_wordle.score_guesses(guesses, answers)

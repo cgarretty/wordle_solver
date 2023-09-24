@@ -96,8 +96,11 @@ def wordle_solver():
     0  # start the rounds of guessing
     for round in range(constants.ROUNDS):
         print("possible answers remaining:", len(answers))
-        case = wordle.find_best_guess(answers, guesses)
-        best_guess = case.root()
+        if round == 0:
+            case = wordle.find_best_guess(answers, guesses)
+        else:
+            case = wordle.find_best_guess(answers, guesses, result_case)
+        best_guess = case.root(round)
         total_rounds = case.total_parents() + 1
         # Write the best guess to screen
         print(
@@ -118,9 +121,6 @@ def wordle_solver():
             )
             answers = result_case.filter_words(answers)
             result_case.count = len(answers)
-
-            if constants.HARD_MODE:
-                guesses = result_case.filter_words(guesses)
 
     print("I LOSE :(")
 
