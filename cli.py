@@ -100,6 +100,7 @@ def wordle_solver():
             case = wordle.find_best_guess(answers, guesses)
         else:
             case = wordle.find_best_guess(answers, guesses, result_case)
+        print("worst case path:", case)
         best_guess = case.root(round)
         total_rounds = case.total_parents() + 1
         # Write the best guess to screen

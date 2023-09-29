@@ -19,18 +19,18 @@ class GuessCase:
     parent: object = None
 
     def __lt__(self, other) -> bool:
-        if self.total_parents() != other.total_parents():
-            return self.total_parents() < other.total_parents()
-
-        elif self.total_count() != other.total_count():
-            return self.total_count() < other.total_count()
-
-        return sorted(list(self.score), reverse=True) > sorted(
-            list(other.score), reverse=True
+        return (
+            self.total_parents(),
+            self.total_count(),
+            sorted(list(other.score), reverse=True),
+        ) < (
+            other.total_parents(),
+            other.total_count(),
+            sorted(list(self.score), reverse=True),
         )
 
     def __repr__(self) -> str:
-        return f"{self.parent} -> {self.guess}, {self.score} ({self.count})"
+        return f"{self.parent} -> {self.guess} - {self.score} ({self.count})"
 
     def total_parents(self):
         if self.parent is None:
@@ -113,7 +113,7 @@ def find_best_guess(
     answers: list,
     guesses: list,
     parent_case: GuessCase = None,
-    breadth: int = 3,
+    breadth: int = 10,
 ) -> tuple:
     """Returns the best word to guess given answers and guesses.
 
