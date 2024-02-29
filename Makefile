@@ -17,3 +17,6 @@ run-cli-game:
 
 find-best-guess:
 	@pipenv run python -m cli wordle-solver
+
+play-reverse-wordle:
+	@pipenv run python -m cli reverse-wordle
