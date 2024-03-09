@@ -9,6 +9,7 @@ attrs = "*"
 colorama = "*"
 pandas = "*"
 click = "*"
+cython = "*"
 
 [requires]
 python_version = "3.9.6"

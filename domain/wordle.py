@@ -1,6 +1,9 @@
-from attrs import define, Factory, field, cmp_using
-import numpy as np
 import collections
+
+from attrs import define, Factory, field, cmp_using
+import cython
+import numpy as np
+
 
 from domain import fortran_wordle, constants
 
@@ -12,39 +15,44 @@ GRAY = 0
 
 
 @define
+@cython.cclass
 class GuessCase:
     guess: bytes
     score: bytes
-    count: int = None
+    count: cython.int = None
     parent: object = None
 
+    @cython.cfunc
     def __lt__(self, other) -> bool:
         return (
             self.total_parents(),
             self.total_count(),
-            sorted(list(other.score), reverse=True),
+            sorted(other.score, reverse=True),
         ) < (
             other.total_parents(),
             other.total_count(),
-            sorted(list(self.score), reverse=True),
+            sorted(self.score, reverse=True),
         )
 
     def __repr__(self) -> str:
         return f"{self.parent} -> {self.guess} - {self.score} ({self.count})"
 
-    def total_parents(self):
+    @cython.cfunc
+    def total_parents(self) -> int:
         if self.parent is None:
             return 0
         else:
             return 1 + self.parent.total_parents()
 
-    def total_count(self):
+    @cython.cfunc
+    def total_count(self) -> int:
         if self.parent is None:
             return self.count
         else:
             return self.count + self.parent.total_count()
 
-    def list_parents(self):
+    @cython.cfunc
+    def list_parents(self) -> list:
         if self.parent is None:
             return [self]
         else:
@@ -104,9 +112,7 @@ def assign_worst_cases(
         GuessCase(guess, score, count, parent=parent) for score, count in counts.items()
     ]
 
-    cases.sort()
-
-    return cases[-1]
+    return max(cases)
 
 
 def find_best_guess(
@@ -139,9 +145,9 @@ def find_best_guess(
         for score, guess in zip(score_cards, guesses)
     ]
 
-    return np.sort(
+    return min(
         [
             find_best_guess(case.filter_words(answers), guesses, parent_case=case)
             for case in np.sort(worst_cases, axis=0)[:breadth]
         ]
-    )[0]
+    )
