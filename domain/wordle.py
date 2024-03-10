@@ -2,13 +2,12 @@ import collections
 
 from attrs import define, Factory, field, cmp_using
 import cython
+from cython.cimports import numpy as cnp
 import numpy as np
-
 
 from domain import fortran_wordle, constants
 
 WORD_SIZE = 5
-
 GREEN = 2
 YELLOW = 1
 GRAY = 0
@@ -114,19 +113,22 @@ class YouWin(Exception):
 
 @cython.cfunc
 def assign_worst_cases(
-    scores: np.array, guess: np.array, parent: object
+    scores: cnp.ndarray, 
+    guess: cnp.numpy.bytes_, 
+    parent: object,
 ) -> GuessCase:
     counts = collections.Counter(scores)
     cases = [
-        GuessCase(bytes(guess), bytes(score), count, parent=parent) for score, count in counts.items()
+        GuessCase(bytes(guess), bytes(score), count, parent=parent) 
+        for score, count in counts.items()
     ]
 
     return max(cases)
 
 @cython.ccall
 def find_best_guess(
-    answers: np.array,
-    guesses: np.array,
+    answers: cnp.ndarray,
+    guesses: cnp.ndarray,
     parent_case: GuessCase = None,
     breadth: cython.int = 10,
 ) -> GuessCase:
@@ -143,15 +145,15 @@ def find_best_guess(
         return final
 
     if constants.HARD_MODE and parent_case:
-        guesses = parent_case.filter_words(guesses)
+        guesses: cnp.ndarray = parent_case.filter_words(guesses)
 
     # initialize scores to all guesses for all answers
     score_cards = fortran_wordle.score_guesses(guesses, answers)
 
     # find the worst case scenario for each guess
     worst_cases = [
-        assign_worst_cases(score, guess, parent_case)
-        for score, guess in zip(score_cards, guesses)
+        assign_worst_cases(scores, guess, parent_case)
+        for scores, guess in zip(score_cards, guesses)
     ]
 
     return min(

@@ -5,6 +5,9 @@ build-python:
 build-fortran:
 	@pipenv run python -m numpy.f2py -c -m domain.fortran_wordle fortran/*.f90
 
+build-cython:
+	@pipenv run python setup.py build_ext --inplace
+
 build:
 	@make build-python
 	@make build-fortran
