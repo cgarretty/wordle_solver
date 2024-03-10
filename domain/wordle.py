@@ -14,16 +14,21 @@ YELLOW = 1
 GRAY = 0
 
 
-@define
 @cython.cclass
 class GuessCase:
-    guess: bytes
-    score: bytes
-    count: cython.int = None
-    parent: object = None
+    guess = cython.declare(bytes, visibility="public")
+    score = cython.declare(bytes, visibility="public")
+    count = cython.declare(cython.int, visibility="public")
+    parent = cython.declare(object, visibility="public")
 
-    @cython.cfunc
-    def __lt__(self, other) -> bool:
+    def __init__(self, guess, score, count, parent=None):
+        self.guess = guess
+        self.score = score
+        self.count = count
+        self.parent = parent
+
+    def __lt__(self, other) -> cython.int:
+
         return (
             self.total_parents(),
             self.total_count(),
@@ -35,36 +40,40 @@ class GuessCase:
         )
 
     def __repr__(self) -> str:
-        return f"{self.parent} -> {self.guess} - {self.score} ({self.count})"
+        return "{parent} -> {guess} - {score} ({count})".format(
+            parent=self.parent, guess=self.guess, score=self.score, count=self.count,
+        )
 
-    @cython.cfunc
-    def total_parents(self) -> int:
+    @cython.ccall
+    def total_parents(self) -> cython.int:
         if self.parent is None:
             return 0
         else:
             return 1 + self.parent.total_parents()
 
-    @cython.cfunc
-    def total_count(self) -> int:
+    @cython.ccall
+    def total_count(self) -> cython.int:
         if self.parent is None:
             return self.count
         else:
             return self.count + self.parent.total_count()
-
-    @cython.cfunc
+    
+    @cython.ccall
     def list_parents(self) -> list:
         if self.parent is None:
             return [self]
         else:
             return [self] + self.parent.list_parents()
-
-    def root(self, round: int = 0):
+    
+    @cython.ccall
+    def root(self, round: cython.int = 0) -> object:
         if self.parent is None:
             return self
         else:
             parents = sorted(self.list_parents())
             return parents[round]
 
+    @cython.ccall
     def filter_words(self, answers):
         possible_solutions = answers[
             fortran_wordle.score_guesses(
@@ -81,7 +90,7 @@ class Board:
     answer: str = field(eq=cmp_using(eq=np.array_equal))
     guesses: list[str] = Factory(list)
     scores: list[int] = Factory(list)
-    max_guesses: int = 6
+    max_guesses: cython.int = 6
 
     def score(self, guess):
         self.guesses.append(guess)
@@ -103,24 +112,24 @@ class OutOfGuesses(Exception):
 class YouWin(Exception):
     pass
 
-
+@cython.cfunc
 def assign_worst_cases(
-    scores: np.array, guess: np.array, parent: GuessCase
+    scores: np.array, guess: np.array, parent: object
 ) -> GuessCase:
     counts = collections.Counter(scores)
     cases = [
-        GuessCase(guess, score, count, parent=parent) for score, count in counts.items()
+        GuessCase(bytes(guess), bytes(score), count, parent=parent) for score, count in counts.items()
     ]
 
     return max(cases)
 
-
+@cython.ccall
 def find_best_guess(
-    answers: list,
-    guesses: list,
+    answers: np.array,
+    guesses: np.array,
     parent_case: GuessCase = None,
-    breadth: int = 10,
-) -> tuple:
+    breadth: cython.int = 10,
+) -> GuessCase:
     """Returns the best word to guess given answers and guesses.
 
     "Best" is defined as the word that will obtain the
@@ -130,7 +139,7 @@ def find_best_guess(
 
     # base case: only one answer left
     if answers.shape[0] == 1:
-        final = GuessCase(answers[0], b"22222", 0, parent=parent_case)
+        final = GuessCase(bytes(answers[0]), b"22222", 0, parent=parent_case)
         return final
 
     if constants.HARD_MODE and parent_case:

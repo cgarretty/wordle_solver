@@ -14,9 +14,6 @@ GREEN_EMOJI = "🟩"
 BOT_EMOJI = "🤖"
 PERSON_EMOJI = "👤"
 
-INITIAL_CASE = wordle.GuessCase(
-    bytes("serai", encoding="utf-8"), bytes("00000", encoding="utf-8"),
-)
 
 def scorecard(board):
     return (
@@ -172,7 +169,7 @@ def reverse_wordle():
     round = 0
     while True:
         print(f"{BOT_EMOJI} thinking...")
-        case = wordle.find_best_guess(remaining_answers, guesses) if round > 0 else INITIAL_CASE
+        case = wordle.find_best_guess(remaining_answers, guesses)
         best_guess = case.root(0)
         try:
             score = board.score(best_guess.guess)
