@@ -1,9 +1,9 @@
 import pytest
-from domain import wordle
+from domain import wordle, board
 
 
 def test_guess_result_is_correct():
-    game = wordle.Board(answer="peace")
+    game = board.Board(answer="peace")
     guess = "serai"
     test_result = [wordle.GRAY, wordle.GREEN, wordle.GRAY, wordle.YELLOW, wordle.GRAY]
 
@@ -11,7 +11,7 @@ def test_guess_result_is_correct():
 
 
 def test_tougher_example_is_correct():
-    game = wordle.Board(answer="stops")
+    game = board.Board(answer="stops")
     guess = "books"
 
     test_result = [
@@ -26,7 +26,7 @@ def test_tougher_example_is_correct():
 
 
 def test_another_tough_example_is_correct():
-    game = wordle.Board(answer="stoop")
+    game = board.Board(answer="stoop")
     guess = "books"
 
     test_result = [
@@ -41,7 +41,7 @@ def test_another_tough_example_is_correct():
 
 
 def test_with_repeated_letters_in_answer():
-    game = wordle.Board(answer="steep")
+    game = board.Board(answer="steep")
     guess = "elect"
     test_results = [
         wordle.YELLOW,
@@ -55,7 +55,7 @@ def test_with_repeated_letters_in_answer():
 
 
 def test_broken_example():
-    game = wordle.Board(answer="clear")
+    game = board.Board(answer="clear")
     guess = "nares"
     test_results = [
         wordle.GRAY,
@@ -69,24 +69,24 @@ def test_broken_example():
 
 
 def test_out_of_guesses():
-    game = wordle.Board(answer="steep", max_guesses=6)
+    game = board.Board(answer="steep", max_guesses=6)
     guesses = ["elect", "treat", "treat", "treat", "treat"]
 
     for guess in guesses:
         game.score(guess)
 
-    with pytest.raises(wordle.OutOfGuesses):
+    with pytest.raises(board.OutOfGuesses):
         game.score("treat")
 
 
 def test_you_win():
-    game = wordle.Board(answer="steep", max_guesses=6)
+    game = board.Board(answer="steep", max_guesses=6)
     guesses = ["elect", "treat", "treat", "treat", "treat"]
 
     for guess in guesses:
         game.score(guess)
 
-    with pytest.raises(wordle.YouWin):
+    with pytest.raises(board.YouWin):
         game.score("steep")
 
 
@@ -105,13 +105,3 @@ def test_guess_case_sort_1():
     cases.sort()
 
     assert cases[0].guess == b"phony"
-
-
-def test_guess_case_sort_1():
-    cases = [
-        wordle.GuessCase(guess=b"test1", score=b"00102", count=697),
-        wordle.GuessCase(guess=b"test2", score=b"00200", count=697),
-    ]
-    cases.sort()
-
-    assert cases[0].guess == b"test1"

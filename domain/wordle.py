@@ -1,6 +1,4 @@
 import collections
-
-from attrs import define, Factory, field, cmp_using
 import cython
 from cython.cimports import numpy as cnp
 import numpy as np
@@ -40,7 +38,10 @@ class GuessCase:
 
     def __repr__(self) -> str:
         return "{parent} -> {guess} - {score} ({count})".format(
-            parent=self.parent, guess=self.guess, score=self.score, count=self.count,
+            parent=self.parent,
+            guess=self.guess,
+            score=self.score,
+            count=self.count,
         )
 
     @cython.ccall
@@ -56,14 +57,14 @@ class GuessCase:
             return self.count
         else:
             return self.count + self.parent.total_count()
-    
+
     @cython.ccall
     def list_parents(self) -> list:
         if self.parent is None:
             return [self]
         else:
             return [self] + self.parent.list_parents()
-    
+
     @cython.ccall
     def root(self, round: cython.int = 0) -> object:
         if self.parent is None:
@@ -84,46 +85,20 @@ class GuessCase:
         return possible_solutions
 
 
-@define
-class Board:
-    answer: str = field(eq=cmp_using(eq=np.array_equal))
-    guesses: list[str] = Factory(list)
-    scores: list[int] = Factory(list)
-    max_guesses: cython.int = 6
-
-    def score(self, guess):
-        self.guesses.append(guess)
-        byte_score = fortran_wordle.score_guesses(guess, self.answer)
-        score = [int(tile) for tile in str(byte_score, encoding="utf-8")]
-        self.scores.append(score)
-        if score == [GREEN] * WORD_SIZE:
-            raise YouWin
-        if len(self.guesses) >= self.max_guesses:
-            raise OutOfGuesses
-
-        return score
-
-
-class OutOfGuesses(Exception):
-    pass
-
-
-class YouWin(Exception):
-    pass
-
 @cython.cfunc
 def assign_worst_cases(
-    scores: cnp.ndarray, 
-    guess: cnp.numpy.bytes_, 
+    scores: cnp.ndarray,
+    guess: cnp.numpy.bytes_,
     parent: object,
 ) -> GuessCase:
     counts = collections.Counter(scores)
     cases = [
-        GuessCase(bytes(guess), bytes(score), count, parent=parent) 
+        GuessCase(bytes(guess), bytes(score), count, parent=parent)
         for score, count in counts.items()
     ]
 
     return max(cases)
+
 
 @cython.ccall
 def find_best_guess(
