@@ -4,6 +4,8 @@ from cython.cimports import numpy as cnp
 import numpy as np
 
 from domain import fortran_wordle, constants
+from domain.guess_case import GuessCase
+from domain.board import Board
 
 WORD_SIZE = 5
 GREEN = 2
@@ -11,86 +13,12 @@ YELLOW = 1
 GRAY = 0
 
 
-@cython.cclass
-class GuessCase:
-    guess = cython.declare(bytes, visibility="public")
-    score = cython.declare(bytes, visibility="public")
-    count = cython.declare(cython.int, visibility="public")
-    parent = cython.declare(object, visibility="public")
-
-    def __init__(self, guess, score, count, parent=None):
-        self.guess = guess
-        self.score = score
-        self.count = count
-        self.parent = parent
-
-    def __lt__(self, other) -> cython.int:
-
-        return (
-            self.total_parents(),
-            self.total_count(),
-            sorted(other.score, reverse=True),
-        ) < (
-            other.total_parents(),
-            other.total_count(),
-            sorted(self.score, reverse=True),
-        )
-
-    def __repr__(self) -> str:
-        return "{parent} -> {guess} - {score} ({count})".format(
-            parent=self.parent,
-            guess=self.guess,
-            score=self.score,
-            count=self.count,
-        )
-
-    @cython.ccall
-    def total_parents(self) -> cython.int:
-        if self.parent is None:
-            return 0
-        else:
-            return 1 + self.parent.total_parents()
-
-    @cython.ccall
-    def total_count(self) -> cython.int:
-        if self.parent is None:
-            return self.count
-        else:
-            return self.count + self.parent.total_count()
-
-    @cython.ccall
-    def list_parents(self) -> list:
-        if self.parent is None:
-            return [self]
-        else:
-            return [self] + self.parent.list_parents()
-
-    @cython.ccall
-    def root(self, round: cython.int = 0) -> object:
-        if self.parent is None:
-            return self
-        else:
-            parents = sorted(self.list_parents())
-            return parents[round]
-
-    @cython.ccall
-    def filter_words(self, answers):
-        possible_solutions = answers[
-            fortran_wordle.score_guesses(
-                np.array([self.guess], "bytes", order="C"), answers
-            ).squeeze()
-            == self.score
-        ]
-
-        return possible_solutions
-
-
 @cython.cfunc
 def assign_worst_cases(
     scores: cnp.ndarray,
     guess: cnp.numpy.bytes_,
     parent: object,
-) -> GuessCase:
+) -> object:
     counts = collections.Counter(scores)
     cases = [
         GuessCase(bytes(guess), bytes(score), count, parent=parent)
@@ -106,7 +34,7 @@ def find_best_guess(
     guesses: cnp.ndarray,
     parent_case: GuessCase = None,
     breadth: cython.int = 10,
-) -> GuessCase:
+) -> object:
     """Returns the best word to guess given answers and guesses.
 
     "Best" is defined as the word that will obtain the

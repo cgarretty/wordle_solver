@@ -18,7 +18,7 @@ cdef class Board:
     cdef list guesses
     cdef list scores
 
-    def __init__(self, str answer, int max_guesses = 6):
+    def __cinit__(self, str answer, int max_guesses = 6):
         self.answer = answer
         self.max_guesses = max_guesses
         self.guesses = []

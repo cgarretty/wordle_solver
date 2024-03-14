@@ -1,9 +1,9 @@
 import pytest
-from domain import wordle, board
+from domain import wordle
 
 
 def test_guess_result_is_correct():
-    game = board.Board(answer="peace")
+    game = wordle.Board(answer="peace")
     guess = "serai"
     test_result = [wordle.GRAY, wordle.GREEN, wordle.GRAY, wordle.YELLOW, wordle.GRAY]
 
@@ -11,7 +11,7 @@ def test_guess_result_is_correct():
 
 
 def test_tougher_example_is_correct():
-    game = board.Board(answer="stops")
+    game = wordle.Board(answer="stops")
     guess = "books"
 
     test_result = [
@@ -26,7 +26,7 @@ def test_tougher_example_is_correct():
 
 
 def test_another_tough_example_is_correct():
-    game = board.Board(answer="stoop")
+    game = wordle.Board(answer="stoop")
     guess = "books"
 
     test_result = [
@@ -41,7 +41,7 @@ def test_another_tough_example_is_correct():
 
 
 def test_with_repeated_letters_in_answer():
-    game = board.Board(answer="steep")
+    game = wordle.Board(answer="steep")
     guess = "elect"
     test_results = [
         wordle.YELLOW,
@@ -55,7 +55,7 @@ def test_with_repeated_letters_in_answer():
 
 
 def test_broken_example():
-    game = board.Board(answer="clear")
+    game = wordle.Board(answer="clear")
     guess = "nares"
     test_results = [
         wordle.GRAY,
@@ -69,24 +69,24 @@ def test_broken_example():
 
 
 def test_out_of_guesses():
-    game = board.Board(answer="steep", max_guesses=6)
+    game = wordle.Board(answer="steep", max_guesses=6)
     guesses = ["elect", "treat", "treat", "treat", "treat"]
 
     for guess in guesses:
         game.score(guess)
 
-    with pytest.raises(board.OutOfGuesses):
+    with pytest.raises(wordle.OutOfGuesses):
         game.score("treat")
 
 
 def test_you_win():
-    game = board.Board(answer="steep", max_guesses=6)
+    game = wordle.Board(answer="steep", max_guesses=6)
     guesses = ["elect", "treat", "treat", "treat", "treat"]
 
     for guess in guesses:
         game.score(guess)
 
-    with pytest.raises(board.YouWin):
+    with pytest.raises(wordle.YouWin):
         game.score("steep")
 
 
